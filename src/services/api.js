@@ -24,7 +24,7 @@ import {Platform} from 'react-native';
 // IMPORTANT: Since you're using a PHYSICAL Android device, we'll use your computer's IP
 // Make sure your phone and computer are on the same WiFi network
 const DEVICE_IP = Platform.OS === 'android' 
-  ? '10.150.225.118'  // Your computer's IP for physical device
+  ? '192.168.0.25'  // Your computer's IP for physical device
   : 'localhost';       // For iOS simulator
 
 export const API_BASE_URL = `http://${DEVICE_IP}:3000`;

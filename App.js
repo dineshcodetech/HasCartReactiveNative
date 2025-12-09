@@ -2,7 +2,7 @@ import React, {useState, useEffect} from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {StyleSheet, Text, ActivityIndicator, View} from 'react-native';
+import {StyleSheet, ActivityIndicator, View} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import './global.css';
 
@@ -10,21 +10,26 @@ import LoginScreen from './src/screens/LoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import ProductsScreen from './src/screens/ProductsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import ProductDetailScreen from './src/screens/ProductDetailScreen';
+import Icon from './src/components/Icon';
+import {IconNames} from './src/config/icons';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const TabBarIcon = ({label, focused}) => {
-  const icons = {
-    Home: '🏠',
-    Products: '🛍️',
-    Profile: '👤',
+  const iconMap = {
+    Home: IconNames.Home,
+    Products: IconNames.Products,
+    Profile: IconNames.Profile,
   };
 
   return (
-    <Text style={[styles.tabIcon, focused && styles.tabIconFocused]}>
-      {icons[label]}
-    </Text>
+    <Icon
+      name={iconMap[label] || label}
+      size={24}
+      color={focused ? '#4CAF50' : '#999'}
+    />
   );
 };
 
@@ -119,6 +124,14 @@ export default function App() {
           name="MainTabs" 
           component={MainTabs}
           options={{animationEnabled: false}}
+        />
+        <Stack.Screen 
+          name="ProductDetail" 
+          component={ProductDetailScreen}
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
         />
       </Stack.Navigator>
     </NavigationContainer>

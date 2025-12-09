@@ -1,19 +1,22 @@
-import React, {useState} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   Alert,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {useNavigation} from '@react-navigation/native';
-import {API_BASE_URL} from '../services/api';
+import { useNavigation } from '@react-navigation/native';
+import { API_BASE_URL } from '../services/api';
+import Icon from '../components/Icon';
+import { IconNames } from '../config/icons';
+import { styled } from 'nativewind';
 
 const LoginScreen = () => {
   const navigation = useNavigation();
@@ -26,6 +29,24 @@ const LoginScreen = () => {
     confirmPassword: '',
   });
 
+  const fadeAnim = new Animated.Value(0);
+  const slideAnim = new Animated.Value(20);
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
@@ -35,27 +56,23 @@ const LoginScreen = () => {
 
   const validateForm = () => {
     if (!formData.email || !formData.password) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      Alert.alert('Incomplete', 'Please fill in all fields.');
       return false;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
+      Alert.alert('Invalid Email', 'Please check your email address.');
       return false;
     }
 
     if (!isLogin) {
       if (!formData.name) {
-        Alert.alert('Error', 'Please enter your name');
+        Alert.alert('Incomplete', 'Please tell us your name.');
         return false;
       }
       if (formData.password !== formData.confirmPassword) {
-        Alert.alert('Error', 'Passwords do not match');
-        return false;
-      }
-      if (formData.password.length < 6) {
-        Alert.alert('Error', 'Password must be at least 6 characters');
+        Alert.alert('Mismatch', 'Passwords do not match.');
         return false;
       }
     }
@@ -64,64 +81,33 @@ const LoginScreen = () => {
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
     try {
       const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
       const payload = isLogin
-        ? {
-            email: formData.email,
-            password: formData.password,
-          }
-        : {
-            name: formData.name,
-            email: formData.email,
-            password: formData.password,
-          };
-        console.log("API URL:", `${API_BASE_URL}${endpoint}`);
-        console.log("Payload:", JSON.stringify(payload));
+        ? { email: formData.email, password: formData.password }
+        : { name: formData.name, email: formData.email, password: formData.password };
+
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      console.log('Response status:', response.status);
 
       const data = await response.json();
 
       if (response.ok) {
-        // Store token if provided
-        if (data.token) {
-          await AsyncStorage.setItem('authToken', data.token);
-        }
-        if (data.user) {
-          await AsyncStorage.setItem('userData', JSON.stringify(data.user));
-        }
-        // Update app auth state
-        if (global.setAppAuthState) {
-          global.setAppAuthState(true);
-        }
-        // Navigate to main app
-        navigation.reset({
-          index: 0,
-          routes: [{name: 'MainTabs'}],
-        });
+        if (data.token) await AsyncStorage.setItem('authToken', data.token);
+        if (data.user) await AsyncStorage.setItem('userData', JSON.stringify(data.user));
+        if (global.setAppAuthState) global.setAppAuthState(true);
+        navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
       } else {
-        Alert.alert('Error', data.message || 'Something went wrong. Please try again.');
+        Alert.alert('Error', data.message || 'Authentication failed.');
       }
     } catch (error) {
-      console.error('Auth error:', error);
-      console.error('Error details:', error.message);
-      console.error('API Base URL:', API_BASE_URL);
-      Alert.alert(
-        'Network Error', 
-        `Cannot connect to server.\n\nMake sure:\n1. Backend is running on port 3000\n2. Phone and computer are on same WiFi\n3. Firewall allows port 3000\n\nError: ${error.message}`
-      );
+      Alert.alert('Connection Error', `Unable to reach server. \n${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -129,223 +115,110 @@ const LoginScreen = () => {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      className="flex-1 bg-white"
+    >
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled">
-        <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <Text style={styles.logo}>🛒</Text>
-          </View>
-          <Text style={styles.title}>{isLogin ? 'Welcome Back' : 'Create Account'}</Text>
-          <Text style={styles.subtitle}>
-            {isLogin
-              ? 'Sign in to continue shopping'
-              : 'Join us and start shopping today'}
-          </Text>
-        </View>
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+        keyboardShouldPersistTaps="handled"
+        className="px-8"
+      >
+        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
-        <View style={styles.formContainer}>
-          {!isLogin && (
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Full Name</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your name"
-                placeholderTextColor="#999"
-                value={formData.name}
-                onChangeText={value => handleInputChange('name', value)}
-                autoCapitalize="words"
-              />
+          {/* Minimalist Logo Area */}
+          <View className="items-center mb-12">
+            <View className="w-16 h-16 bg-black rounded-sm items-center justify-center mb-6">
+              <Icon name="shopping-bag" size={28} color="#fff" />
             </View>
-          )}
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your email"
-              placeholderTextColor="#999"
-              value={formData.email}
-              onChangeText={value => handleInputChange('email', value)}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your password"
-              placeholderTextColor="#999"
-              value={formData.password}
-              onChangeText={value => handleInputChange('password', value)}
-              secureTextEntry
-              autoCapitalize="none"
-            />
-          </View>
-
-          {!isLogin && (
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Confirm Password</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Confirm your password"
-                placeholderTextColor="#999"
-                value={formData.confirmPassword}
-                onChangeText={value => handleInputChange('confirmPassword', value)}
-                secureTextEntry
-                autoCapitalize="none"
-              />
-            </View>
-          )}
-
-          {isLogin && (
-            <TouchableOpacity style={styles.forgotPassword}>
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-            onPress={handleSubmit}
-            disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.submitButtonText}>
-                {isLogin ? 'Sign In' : 'Sign Up'}
-              </Text>
-            )}
-          </TouchableOpacity>
-
-          <View style={styles.switchContainer}>
-            <Text style={styles.switchText}>
-              {isLogin ? "Don't have an account? " : 'Already have an account? '}
+            <Text className="text-3xl font-light tracking-[0.2em] text-black">
+              HASCART
             </Text>
-            <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
-              <Text style={styles.switchLink}>
-                {isLogin ? 'Sign Up' : 'Sign In'}
-              </Text>
-            </TouchableOpacity>
+            <Text className="text-xs text-gray-400 mt-2 tracking-widest uppercase">
+              {isLogin ? 'Members Entry' : 'Join the Club'}
+            </Text>
           </View>
-        </View>
+
+          {/* Form Fields */}
+          <View className="space-y-6">
+            {!isLogin && (
+              <View>
+                <TextInput
+                  placeholder="FULL NAME"
+                  placeholderTextColor="#9ca3af"
+                  className="w-full border-b border-gray-200 py-3 text-base text-black font-medium tracking-wide"
+                  value={formData.name}
+                  onChangeText={value => handleInputChange('name', value)}
+                />
+              </View>
+            )}
+
+            <View>
+              <TextInput
+                placeholder="EMAIL ADDRESS"
+                placeholderTextColor="#9ca3af"
+                className="w-full border-b border-gray-200 py-3 text-base text-black font-medium tracking-wide"
+                value={formData.email}
+                onChangeText={value => handleInputChange('email', value)}
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+            </View>
+
+            <View>
+              <TextInput
+                placeholder="PASSWORD"
+                placeholderTextColor="#9ca3af"
+                className="w-full border-b border-gray-200 py-3 text-base text-black font-medium tracking-wide"
+                value={formData.password}
+                onChangeText={value => handleInputChange('password', value)}
+                secureTextEntry
+              />
+            </View>
+
+            {!isLogin && (
+              <View>
+                <TextInput
+                  placeholder="CONFIRM PASSWORD"
+                  placeholderTextColor="#9ca3af"
+                  className="w-full border-b border-gray-200 py-3 text-base text-black font-medium tracking-wide"
+                  value={formData.confirmPassword}
+                  onChangeText={value => handleInputChange('confirmPassword', value)}
+                  secureTextEntry
+                />
+              </View>
+            )}
+
+            <TouchableOpacity
+              className="w-full bg-black py-5 mt-8 items-center active:bg-gray-800"
+              onPress={handleSubmit}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text className="text-white text-sm font-bold tracking-[0.15em] uppercase">
+                  {isLogin ? 'Enter' : 'Create Account'}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <View className="flex-row justify-center mt-6">
+              <Text className="text-gray-400 text-xs tracking-wide">
+                {isLogin ? 'New here?' : 'Member?'}
+              </Text>
+              <TouchableOpacity onPress={() => setIsLogin(!isLogin)} className="ml-2">
+                <Text className="text-black text-xs font-bold tracking-wide border-b border-black">
+                  {isLogin ? 'APPLY FOR ACCESS' : 'SIGN IN'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+        </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  header: {
-    alignItems: 'center',
-    paddingTop: 60,
-    paddingBottom: 40,
-    paddingHorizontal: 20,
-  },
-  logoContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#4CAF50',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  logo: {
-    fontSize: 50,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-  },
-  formContainer: {
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: '#333',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 24,
-  },
-  forgotPasswordText: {
-    color: '#4CAF50',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  submitButton: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 12,
-    padding: 18,
-    alignItems: 'center',
-    marginTop: 10,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  submitButtonDisabled: {
-    opacity: 0.7,
-  },
-  submitButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  switchContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 24,
-  },
-  switchText: {
-    color: '#666',
-    fontSize: 14,
-  },
-  switchLink: {
-    color: '#4CAF50',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-});
 
 export default LoginScreen;
 
