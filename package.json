@@ -25,7 +25,8 @@
     "@babel/preset-env": "^7.23.3",
     "@babel/runtime": "^7.23.4",
     "@react-native/metro-config": "^0.82.1",
-    "metro-react-native-babel-preset": "^0.77.0"
+    "metro-react-native-babel-preset": "^0.77.0",
+    "react-native-dotenv": "^3.4.11"
   },
   "private": true
 }
