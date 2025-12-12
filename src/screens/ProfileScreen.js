@@ -1,23 +1,95 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  Image,
-  Dimensions,
   Switch,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Icon from '../components/Icon';
-import { styled } from 'nativewind';
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
   const [isDark, setIsDark] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const StatBox = ({ label, value, icon }) => (
-    <View className="items-center justify-center bg-gray-50 p-4 rounded-xl w-[30%] shadow-sm">
+  // Check auth status when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      checkAuthStatus();
+    }, [])
+  );
+
+  const checkAuthStatus = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('authToken');
+      const userData = await AsyncStorage.getItem('userData');
+      console.log(userData, token, "herererer");
+
+      console.log('[Profile] Auth check - Token:', token ? 'Found' : 'Not found');
+
+      if (token && userData) {
+        setIsLoggedIn(true);
+        setUser(JSON.parse(userData));
+      } else {
+        setIsLoggedIn(false);
+        setUser(null);
+      }
+    } catch (error) {
+      console.error('[Profile] Auth check error:', error);
+      setIsLoggedIn(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem('authToken');
+              await AsyncStorage.removeItem('userData');
+              setIsLoggedIn(false);
+              setUser(null);
+
+              // Reset navigation to Login
+              if (global.setAppAuthState) {
+                global.setAppAuthState(false);
+              }
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            } catch (error) {
+              console.error('[Profile] Logout error:', error);
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleLogin = () => {
+    navigation.navigate('Login');
+  };
+
+  const StatBox = ({ label, value }) => (
+    <View className="items-center justify-center bg-gray-50 p-4 rounded-xl w-[30%]">
       <Text className="text-xl font-bold text-black mb-1">{value}</Text>
       <Text className="text-[10px] text-gray-400 uppercase tracking-wider">{label}</Text>
     </View>
@@ -36,6 +108,39 @@ const ProfileScreen = () => {
     </TouchableOpacity>
   );
 
+  if (loading) {
+    return (
+      <View className="flex-1 bg-white justify-center items-center">
+        <ActivityIndicator size="large" color="#000" />
+      </View>
+    );
+  }
+
+  // Not logged in - show login prompt
+  if (!isLoggedIn) {
+    return (
+      <View className="flex-1 bg-white justify-center items-center px-8">
+        <View className="w-20 h-20 bg-gray-100 rounded-full items-center justify-center mb-6">
+          <Icon name="person" size={40} color="#999" />
+        </View>
+        <Text className="text-2xl font-bold text-black mb-2">Welcome</Text>
+        <Text className="text-gray-400 text-center mb-8">
+          Sign in to access your profile, orders, and exclusive deals
+        </Text>
+        <TouchableOpacity
+          onPress={handleLogin}
+          className="w-full bg-black py-4 rounded-lg items-center"
+        >
+          <Text className="text-white font-bold text-base tracking-wide">SIGN IN</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleLogin} className="mt-4">
+          <Text className="text-gray-500 text-sm">New here? <Text className="text-black font-bold">Create Account</Text></Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // Logged in - show profile
   return (
     <View className="flex-1 bg-white">
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
@@ -43,7 +148,7 @@ const ProfileScreen = () => {
         {/* Header */}
         <View className="px-6 pt-16 pb-8 items-center border-b border-gray-100">
           <View className="relative">
-            <View className="w-24 h-24 bg-gray-200 rounded-full items-center justify-center overflow-hidden mb-4 border-2 border-white shadow-lg shadow-gray-200">
+            <View className="w-24 h-24 bg-gray-200 rounded-full items-center justify-center overflow-hidden mb-4 border-2 border-white shadow-lg">
               <Icon name="person" size={40} color="#999" />
             </View>
             <View className="absolute bottom-4 right-0 bg-black w-8 h-8 rounded-full items-center justify-center border-2 border-white">
@@ -51,19 +156,27 @@ const ProfileScreen = () => {
             </View>
           </View>
 
-          <Text className="text-2xl font-bold text-black mb-1">Alex Morgan</Text>
-          <Text className="text-gray-400 text-sm mb-4">alex.morgan@example.com</Text>
+          <Text className="text-2xl font-bold text-black mb-1">
+            {user?.name || 'User'}
+          </Text>
+          <Text className="text-gray-400 text-sm mb-4">
+            {user?.email || 'No email'}
+          </Text>
 
-          <View className="bg-black/5 px-4 py-1.5 rounded-full">
-            <Text className="text-[10px] font-bold uppercase tracking-widest text-black/60">Premium Member</Text>
-          </View>
+          {user?.role && (
+            <View className="bg-black/5 px-4 py-1.5 rounded-full">
+              <Text className="text-[10px] font-bold uppercase tracking-widest text-black/60">
+                {user.role === 'user' ? 'Member' : user.role}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Stats Dashboard */}
         <View className="flex-row justify-between px-6 py-8">
-          <StatBox label="Orders" value="12" />
-          <StatBox label="Wishlist" value="48" />
-          <StatBox label="Wallet" value="₹450" />
+          <StatBox label="Orders" value="0" />
+          <StatBox label="Wishlist" value="0" />
+          <StatBox label="Wallet" value="₹0" />
         </View>
 
         {/* Menu Sections */}
@@ -90,7 +203,12 @@ const ProfileScreen = () => {
           <Text className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-4 mt-8">Support</Text>
           <MenuItem icon="headset-mic" label="Concierge Support" />
           <MenuItem icon="info" label="About Us" />
-          <MenuItem icon="logout" label="Sign Out" isDestructive={true} />
+          <MenuItem
+            icon="logout"
+            label="Sign Out"
+            isDestructive={true}
+            onPress={handleLogout}
+          />
         </View>
       </ScrollView>
     </View>
@@ -98,4 +216,3 @@ const ProfileScreen = () => {
 };
 
 export default ProfileScreen;
-

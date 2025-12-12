@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,15 @@ import {
   TouchableOpacity,
   Linking,
   Dimensions,
+  StatusBar,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { apiCall } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiCall, trackProductClick } from '../services/api';
 import Icon from '../components/Icon';
 import { IconNames } from '../config/icons';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const ProductDetailScreen = () => {
   const route = useRoute();
@@ -23,6 +27,10 @@ const ProductDetailScreen = () => {
   const [productDetail, setProductDetail] = useState(product || null);
   const [loading, setLoading] = useState(!product);
   const [error, setError] = useState(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [showAllFeatures, setShowAllFeatures] = useState(false);
+
+  const imageScrollRef = useRef(null);
 
   useEffect(() => {
     if (!product && asin) {
@@ -53,6 +61,7 @@ const ProductDetailScreen = () => {
           'ItemInfo.ContentInfo',
           'ItemInfo.TechnicalInfo',
           'ItemInfo.ProductInfo',
+          'ItemInfo.ByLineInfo',
           'Offers.Listings.Price',
           'Offers.Listings.Condition',
           'Offers.Listings.DeliveryInfo.IsPrimeEligible',
@@ -88,51 +97,45 @@ const ProductDetailScreen = () => {
 
   const getAllProductImages = (item) => {
     const images = [];
-
-    // Get Primary images (all sizes)
     if (item?.Images?.Primary) {
       if (item.Images.Primary.Large?.URL) images.push(item.Images.Primary.Large.URL);
-      if (item.Images.Primary.Medium?.URL) images.push(item.Images.Primary.Medium.URL);
-      if (item.Images.Primary.Small?.URL) images.push(item.Images.Primary.Small.URL);
-      if (item.Images.Primary.URL && !images.includes(item.Images.Primary.URL)) {
-        images.push(item.Images.Primary.URL);
-      }
+      else if (item.Images.Primary.Medium?.URL) images.push(item.Images.Primary.Medium.URL);
+      else if (item.Images.Primary.Small?.URL) images.push(item.Images.Primary.Small.URL);
     }
-
-    // Get Variant images
     if (item?.Images?.Variants) {
       item.Images.Variants.forEach((variant) => {
-        if (variant.Large?.URL && !images.includes(variant.Large.URL)) {
-          images.push(variant.Large.URL);
-        } else if (variant.Medium?.URL && !images.includes(variant.Medium.URL)) {
-          images.push(variant.Medium.URL);
-        } else if (variant.Small?.URL && !images.includes(variant.Small.URL)) {
-          images.push(variant.Small.URL);
+        const url = variant.Large?.URL || variant.Medium?.URL || variant.Small?.URL;
+        if (url && !images.includes(url)) {
+          images.push(url);
         }
       });
     }
-
-    // Remove duplicates and return
-    return [...new Set(images)];
-  };
-
-  const getProductImage = (item) => {
-    const allImages = getAllProductImages(item);
-    return allImages.length > 0 ? allImages[0] : null;
+    return images;
   };
 
   const getProductTitle = (item) => {
     return item?.ItemInfo?.Title?.DisplayValue || item?.Title || 'Product';
   };
 
-  const formatPrice = (priceObj) => {
-    if (!priceObj) return 'Price not available';
-    const amount = priceObj.Amount || priceObj.amount;
-    // const currency = priceObj.Currency || priceObj.currency || 'INR'; // Ignore currency code for now
-    if (amount) {
-      return `₹${(amount / 100).toFixed(2)}`;
-    }
-    return 'Price not available';
+  const getBrand = (item) => {
+    return item?.ItemInfo?.ByLineInfo?.Brand?.DisplayValue || null;
+  };
+
+  const getPriceInfo = (item) => {
+    const listing = item?.Offers?.Listings?.[0];
+    if (!listing?.Price) return null;
+
+    const price = listing.Price;
+    return {
+      amount: price.Amount,
+      displayAmount: price.DisplayAmount || `₹${price.Amount?.toFixed(0)}`,
+      savings: price.Savings ? {
+        amount: price.Savings.Amount,
+        displayAmount: price.Savings.DisplayAmount,
+        percentage: price.Savings.Percentage,
+      } : null,
+      originalPrice: price.Savings ? price.Amount + price.Savings.Amount : null,
+    };
   };
 
   const getFeatures = (item) => {
@@ -150,18 +153,62 @@ const ProductDetailScreen = () => {
     };
   };
 
-  const openAmazonLink = () => {
+  const openAmazonLink = async () => {
     const url = productDetail?.DetailPageURL || `https://www.amazon.in/dp/${asin}`;
+
+    console.log('[ProductDetail] Opening Amazon link:', url);
+
+    try {
+      // Debug: List all keys in AsyncStorage
+      const allKeys = await AsyncStorage.getAllKeys();
+      console.log('[ProductDetail] All AsyncStorage keys:', allKeys);
+
+      const token = await AsyncStorage.getItem('authToken');
+      console.log('[ProductDetail] Raw token value:', token);
+      console.log('[ProductDetail] User token:', token ? 'Found' : 'Not found');
+
+      if (token) {
+        const title = getProductTitle(productDetail);
+        const priceInfo = getPriceInfo(productDetail);
+        const allImages = getAllProductImages(productDetail);
+
+        const clickData = {
+          asin: asin,
+          productName: title,
+          category: productDetail?.BrowseNodeInfo?.BrowseNodes?.[0]?.DisplayName || 'All',
+          price: priceInfo?.amount || 0,
+          imageUrl: allImages[0] || '',
+          productUrl: url,
+        };
+
+        console.log('[ProductDetail] Tracking click with data:', JSON.stringify(clickData));
+
+        const response = await trackProductClick(clickData, token);
+        console.log('[ProductDetail] Track click response:', JSON.stringify(response));
+
+        if (!response.ok) {
+          console.warn('[ProductDetail] Click tracking failed:', response.data?.message || 'Unknown error');
+        }
+      } else {
+        console.log('[ProductDetail] Skipping click tracking - user not logged in');
+      }
+    } catch (err) {
+      console.error('[ProductDetail] Click tracking error:', err.message);
+    }
+
+    // Always open the Amazon link regardless of tracking success
+    console.log("5555555===================");
+
     Linking.openURL(url).catch((err) =>
-      console.error('Error opening URL:', err)
+      console.error('[ProductDetail] Error opening URL:', err)
     );
   };
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4CAF50" />
-        <Text style={styles.loadingText}>Loading product details...</Text>
+        <ActivityIndicator size="large" color="#000" />
+        <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
@@ -171,9 +218,7 @@ const ProductDetailScreen = () => {
       <View style={styles.errorContainer}>
         <Icon name={IconNames.Help} size={48} color="#999" />
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity
-          style={styles.retryButton}
-          onPress={fetchProductDetails}>
+        <TouchableOpacity style={styles.retryButton} onPress={fetchProductDetails}>
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
       </View>
@@ -189,238 +234,257 @@ const ProductDetailScreen = () => {
   }
 
   const allImages = getAllProductImages(productDetail);
-  const imageUrl = allImages.length > 0 ? allImages[0] : null;
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const imageScrollRef = React.useRef(null);
-  const thumbnailScrollRef = React.useRef(null);
   const title = getProductTitle(productDetail);
-  const price = formatPrice(productDetail.Offers?.Listings?.[0]?.Price);
+  const brand = getBrand(productDetail);
+  const priceInfo = getPriceInfo(productDetail);
   const features = getFeatures(productDetail);
   const productInfo = getProductInfo(productDetail);
   const condition = productDetail.Offers?.Listings?.[0]?.Condition?.Value;
   const isPrime = productDetail.Offers?.Listings?.[0]?.DeliveryInfo?.IsPrimeEligible;
 
-  const screenWidth = Dimensions.get('window').width;
-
-  const scrollToImage = (index) => {
-    setSelectedImageIndex(index);
-    if (imageScrollRef.current) {
-      imageScrollRef.current.scrollTo({
-        x: index * screenWidth,
-        animated: true,
-      });
-    }
-  };
+  const displayedFeatures = showAllFeatures ? features : features.slice(0, 3);
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}>
-          <Icon name={IconNames.ArrowLeft} size={24} color="#fff" style={styles.backIcon} />
+        <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
+          <Icon name={IconNames.ArrowLeft} size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Product Details</Text>
-        <View style={styles.placeholder} />
+        <TouchableOpacity style={styles.headerButton}>
+          <Icon name={IconNames.Share} size={22} color="#000" />
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.imageContainer}>
-        {allImages.length > 0 ? (
-          <>
-            <ScrollView
-              ref={imageScrollRef}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              onMomentumScrollEnd={(event) => {
-                const index = Math.round(event.nativeEvent.contentOffset.x / screenWidth);
-                setSelectedImageIndex(index);
-              }}
-              style={styles.imageScrollView}>
-              {allImages.map((url, index) => (
-                <Image
-                  key={index}
-                  source={{ uri: url }}
-                  style={[styles.productImage, { width: screenWidth }]}
-                  resizeMode="contain"
-                />
-              ))}
-            </ScrollView>
-            {allImages.length > 1 && (
-              <View style={styles.imageIndicators}>
-                {allImages.map((_, index) => (
-                  <View
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
+        {/* Image Gallery */}
+        <View style={styles.imageContainer}>
+          {allImages.length > 0 ? (
+            <>
+              <ScrollView
+                ref={imageScrollRef}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={(event) => {
+                  const index = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+                  setSelectedImageIndex(index);
+                }}
+              >
+                {allImages.map((url, index) => (
+                  <Image
                     key={index}
-                    style={[
-                      styles.indicator,
-                      index === selectedImageIndex && styles.indicatorActive,
-                    ]}
+                    source={{ uri: url }}
+                    style={styles.productImage}
+                    resizeMode="contain"
                   />
                 ))}
-              </View>
-            )}
-            {allImages.length > 1 && (
-              <View style={styles.imageThumbnails}>
-                <ScrollView
-                  ref={thumbnailScrollRef}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.thumbnailContainer}>
-                  {allImages.map((url, index) => (
-                    <TouchableOpacity
+              </ScrollView>
+
+              {allImages.length > 1 && (
+                <View style={styles.imageIndicators}>
+                  {allImages.map((_, index) => (
+                    <View
                       key={index}
-                      onPress={() => scrollToImage(index)}
                       style={[
-                        styles.thumbnail,
-                        index === selectedImageIndex && styles.thumbnailActive,
-                      ]}>
-                      <Image
-                        source={{ uri: url }}
-                        style={styles.thumbnailImage}
-                        resizeMode="cover"
-                      />
-                    </TouchableOpacity>
+                        styles.indicator,
+                        index === selectedImageIndex && styles.indicatorActive,
+                      ]}
+                    />
                   ))}
-                </ScrollView>
-              </View>
-            )}
-          </>
-        ) : (
-          <View style={styles.imagePlaceholder}>
-            <Icon name={IconNames.ProductPlaceholder} size={64} color="#999" />
-          </View>
-        )}
-      </View>
-
-      <View style={styles.content}>
-        <Text style={styles.title}>{title}</Text>
-
-        <View style={styles.priceContainer}>
-          <Text style={styles.price}>{price}</Text>
-          {productDetail.Offers?.Listings?.[0]?.Price?.Savings && (
-            <View style={styles.savingsContainer}>
-              <Text style={styles.savings}>
-                Save {productDetail.Offers.Listings[0].Price.Savings.DisplayAmount}
-              </Text>
+                </View>
+              )}
+            </>
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <Icon name={IconNames.ProductPlaceholder} size={64} color="#ccc" />
             </View>
           )}
         </View>
 
-        {condition && (
-          <View style={styles.badgeContainer}>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{condition}</Text>
+        {/* Content */}
+        <View style={styles.content}>
+          {/* Brand */}
+          {brand && (
+            <Text style={styles.brand}>{brand.toUpperCase()}</Text>
+          )}
+
+          {/* Title */}
+          <Text style={styles.title} numberOfLines={3}>{title}</Text>
+
+          {/* Price Section */}
+          {priceInfo && (
+            <View style={styles.priceSection}>
+              <View style={styles.priceRow}>
+                <Text style={styles.price}>₹{priceInfo.amount?.toFixed(0)}</Text>
+
+                {priceInfo.savings && (
+                  <>
+                    <Text style={styles.originalPrice}>
+                      ₹{priceInfo.originalPrice?.toFixed(0)}
+                    </Text>
+                    <View style={styles.discountBadge}>
+                      <Text style={styles.discountText}>
+                        {priceInfo.savings.percentage}% OFF
+                      </Text>
+                    </View>
+                  </>
+                )}
+              </View>
+
+              {priceInfo.savings && (
+                <Text style={styles.savingsText}>
+                  You save ₹{priceInfo.savings.amount?.toFixed(0)}
+                </Text>
+              )}
             </View>
+          )}
+
+          {/* Badges */}
+          <View style={styles.badgeContainer}>
+            {condition && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{condition}</Text>
+              </View>
+            )}
             {isPrime && (
               <View style={[styles.badge, styles.primeBadge]}>
-                <Text style={styles.badgeText}>Prime</Text>
+                <Text style={styles.primeText}>✓ Prime</Text>
               </View>
             )}
           </View>
-        )}
 
-        {productInfo.color && (
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Color:</Text>
-            <Text style={styles.infoValue}>{productInfo.color}</Text>
-          </View>
-        )}
+          {/* Product Info Pills */}
+          {(productInfo.color || productInfo.size) && (
+            <View style={styles.infoPills}>
+              {productInfo.color && (
+                <View style={styles.infoPill}>
+                  <Text style={styles.infoPillLabel}>Color</Text>
+                  <Text style={styles.infoPillValue}>{productInfo.color}</Text>
+                </View>
+              )}
+              {productInfo.size && (
+                <View style={styles.infoPill}>
+                  <Text style={styles.infoPillLabel}>Size</Text>
+                  <Text style={styles.infoPillValue}>{productInfo.size}</Text>
+                </View>
+              )}
+              {productInfo.weight && (
+                <View style={styles.infoPill}>
+                  <Text style={styles.infoPillLabel}>Weight</Text>
+                  <Text style={styles.infoPillValue}>
+                    {productInfo.weight} {productInfo.unit || ''}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
 
-        {productInfo.size && (
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Size:</Text>
-            <Text style={styles.infoValue}>{productInfo.size}</Text>
-          </View>
-        )}
+          {/* Features Section */}
+          {features.length > 0 && (
+            <View style={styles.featuresSection}>
+              <Text style={styles.sectionTitle}>Highlights</Text>
 
-        {productInfo.weight && (
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Weight:</Text>
-            <Text style={styles.infoValue}>
-              {productInfo.weight} {productInfo.unit || ''}
-            </Text>
-          </View>
-        )}
+              {displayedFeatures.map((feature, index) => (
+                <View key={index} style={styles.featureItem}>
+                  <View style={styles.featureBullet} />
+                  <Text style={styles.featureText}>{feature}</Text>
+                </View>
+              ))}
 
-        {features.length > 0 && (
-          <View style={styles.featuresContainer}>
-            <Text style={styles.sectionTitle}>Features</Text>
-            {features.map((feature, index) => (
-              <View key={index} style={styles.featureItem}>
-                <Icon name={IconNames.Add} size={16} color="#4CAF50" style={styles.featureIcon} />
-                <Text style={styles.featureText}>{feature}</Text>
-              </View>
-            ))}
-          </View>
-        )}
+              {features.length > 3 && (
+                <TouchableOpacity
+                  style={styles.showMoreButton}
+                  onPress={() => setShowAllFeatures(!showAllFeatures)}
+                >
+                  <Text style={styles.showMoreText}>
+                    {showAllFeatures ? 'Show Less' : `Show ${features.length - 3} More`}
+                  </Text>
+                  <Icon
+                    name={showAllFeatures ? IconNames.ChevronUp : IconNames.ChevronDown}
+                    size={16}
+                    color="#000"
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </View>
+      </ScrollView>
 
+      {/* Fixed Bottom CTA */}
+      <View style={styles.bottomCTA}>
         <TouchableOpacity style={styles.buyButton} onPress={openAmazonLink}>
-          <Icon name={IconNames.ShoppingCart} size={20} color="#fff" style={styles.buyIcon} />
           <Text style={styles.buyButtonText}>View on Amazon</Text>
+          <Icon name={IconNames.ExternalLink} size={18} color="#fff" />
         </TouchableOpacity>
       </View>
-    </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
   },
   header: {
-    backgroundColor: '#4CAF50',
-    padding: 15,
-    paddingTop: 50,
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 50,
+    paddingBottom: 12,
+    backgroundColor: '#fff',
+    zIndex: 10,
   },
-  backButton: {
-    padding: 5,
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  backIcon: {
-    color: '#fff',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#fff',
+  scrollView: {
     flex: 1,
-    textAlign: 'center',
-  },
-  placeholder: {
-    width: 34,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
   },
   loadingText: {
-    marginTop: 10,
-    fontSize: 16,
+    marginTop: 12,
+    fontSize: 14,
     color: '#666',
+    letterSpacing: 1,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#f5f5f5',
+    padding: 24,
+    backgroundColor: '#fff',
   },
   errorText: {
     fontSize: 16,
-    color: '#d32f2f',
+    color: '#666',
     textAlign: 'center',
-    marginTop: 15,
-    marginBottom: 20,
+    marginTop: 16,
+    marginBottom: 24,
   },
   retryButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    backgroundColor: '#000',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
     borderRadius: 8,
   },
   retryButtonText: {
@@ -429,184 +493,207 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   imageContainer: {
-    width: '100%',
-    backgroundColor: '#fff',
-    marginBottom: 10,
-  },
-  imageScrollView: {
-    height: 350,
+    width: SCREEN_WIDTH,
+    height: SCREEN_WIDTH,
+    backgroundColor: '#fafafa',
   },
   productImage: {
-    height: 350,
+    width: SCREEN_WIDTH,
+    height: SCREEN_WIDTH,
   },
   imagePlaceholder: {
-    width: '100%',
-    height: 350,
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
   },
   imageIndicators: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 10,
-    gap: 8,
+    position: 'absolute',
+    bottom: 16,
+    left: 0,
+    right: 0,
+    gap: 6,
   },
   indicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#ccc',
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(0,0,0,0.2)',
   },
   indicatorActive: {
-    backgroundColor: '#4CAF50',
-    width: 24,
-  },
-  imageThumbnails: {
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#f5f5f5',
-  },
-  thumbnailContainer: {
-    paddingHorizontal: 5,
-  },
-  thumbnail: {
-    width: 60,
-    height: 60,
-    marginRight: 10,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    overflow: 'hidden',
-  },
-  thumbnailActive: {
-    borderColor: '#4CAF50',
-    borderWidth: 3,
-  },
-  thumbnailImage: {
-    width: '100%',
-    height: '100%',
+    backgroundColor: '#000',
+    width: 20,
   },
   content: {
-    padding: 20,
-    backgroundColor: '#fff',
+    padding: 24,
+  },
+  brand: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#999',
+    letterSpacing: 2,
+    marginBottom: 8,
   },
   title: {
     fontSize: 22,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 15,
+    fontWeight: '600',
+    color: '#000',
     lineHeight: 30,
+    marginBottom: 16,
   },
-  priceContainer: {
+  priceSection: {
+    marginBottom: 20,
+  },
+  priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
+    flexWrap: 'wrap',
+    gap: 10,
   },
   price: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#4CAF50',
-    marginRight: 10,
+    color: '#000',
   },
-  savingsContainer: {
-    backgroundColor: '#E8F5E9',
+  originalPrice: {
+    fontSize: 18,
+    color: '#999',
+    textDecorationLine: 'line-through',
+  },
+  discountBadge: {
+    backgroundColor: '#e8f5e9',
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
+    paddingVertical: 4,
+    borderRadius: 4,
   },
-  savings: {
+  discountText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#2e7d32',
+  },
+  savingsText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#2E7D32',
+    color: '#2e7d32',
+    marginTop: 6,
+    fontWeight: '500',
   },
   badgeContainer: {
     flexDirection: 'row',
+    gap: 8,
     marginBottom: 20,
-    gap: 10,
   },
   badge: {
     backgroundColor: '#f5f5f5',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
-  },
-  primeBadge: {
-    backgroundColor: '#FFD700',
+    borderRadius: 4,
   },
   badgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#333',
-  },
-  infoRow: {
-    flexDirection: 'row',
-    marginBottom: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f5f5f5',
-  },
-  infoLabel: {
-    fontSize: 16,
-    fontWeight: '600',
     color: '#666',
-    width: 80,
   },
-  infoValue: {
-    fontSize: 16,
+  primeBadge: {
+    backgroundColor: '#e3f2fd',
+  },
+  primeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1565c0',
+  },
+  infoPills: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 24,
+  },
+  infoPill: {
+    backgroundColor: '#fafafa',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  infoPillLabel: {
+    fontSize: 11,
+    color: '#999',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  infoPillValue: {
+    fontSize: 14,
+    fontWeight: '600',
     color: '#333',
-    flex: 1,
   },
-  featuresContainer: {
-    marginTop: 10,
-    marginBottom: 20,
+  featuresSection: {
+    marginTop: 8,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#333',
-    marginBottom: 15,
+    color: '#000',
+    marginBottom: 16,
   },
   featureItem: {
     flexDirection: 'row',
-    marginBottom: 12,
+    marginBottom: 14,
     alignItems: 'flex-start',
   },
-  featureIcon: {
-    marginRight: 10,
-    marginTop: 2,
+  featureBullet: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#000',
+    marginTop: 7,
+    marginRight: 12,
   },
   featureText: {
     flex: 1,
     fontSize: 15,
-    color: '#666',
+    color: '#444',
     lineHeight: 22,
   },
+  showMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    gap: 6,
+  },
+  showMoreText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  bottomCTA: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    paddingBottom: 32,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
   buyButton: {
-    backgroundColor: '#4CAF50',
-    padding: 16,
-    borderRadius: 8,
+    backgroundColor: '#000',
+    paddingVertical: 16,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 10,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  buyIcon: {
-    marginRight: 8,
+    gap: 8,
   },
   buyButtonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
   },
 });
 
 export default ProductDetailScreen;
-

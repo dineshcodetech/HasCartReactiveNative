@@ -98,9 +98,17 @@ const LoginScreen = () => {
 
       const data = await response.json();
 
-      if (response.ok) {
-        if (data.token) await AsyncStorage.setItem('authToken', data.token);
-        if (data.user) await AsyncStorage.setItem('userData', JSON.stringify(data.user));
+      if (response.ok && data.success) {
+        console.log('[Login] Success, storing auth data');
+        if (data.token) {
+          await AsyncStorage.setItem('authToken', data.token);
+          console.log('[Login] Token stored');
+        }
+        // Backend returns user info in data.data, not data.user
+        if (data.data) {
+          await AsyncStorage.setItem('userData', JSON.stringify(data.data));
+          console.log('[Login] User data stored:', data.data.name);
+        }
         if (global.setAppAuthState) global.setAppAuthState(true);
         navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
       } else {
