@@ -9,8 +9,5 @@
 		{
 			"path": "../.."
 		}
-	],
-	"settings": {
-		"java.configuration.updateBuildConfiguration": "automatic"
-	}
+	]
 }

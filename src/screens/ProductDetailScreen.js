@@ -7,14 +7,16 @@ import {
   Image,
   ActivityIndicator,
   TouchableOpacity,
-  Linking,
+  Share,
   Dimensions,
+  Linking,
   StatusBar,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiCall, trackProductClick } from '../services/api';
 import Icon from '../components/Icon';
+import CustomLoader from '../components/CustomLoader';
 import { IconNames } from '../config/icons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -22,6 +24,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const ProductDetailScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
+  const { isDark } = require('../context/ThemeContext').useTheme();
   const { asin, product } = route.params || {};
 
   const [productDetail, setProductDetail] = useState(product || null);
@@ -204,12 +207,25 @@ const ProductDetailScreen = () => {
     );
   };
 
+  const handleShare = async () => {
+    try {
+      const title = getProductTitle(productDetail);
+      const url = productDetail?.DetailPageURL || `https://www.amazon.in/dp/${asin}`;
+      const message = `${title}\n\nCheck this out on HasCart: ${url}`;
+
+      await Share.share({
+        message,
+        url, // iOS only
+        title: 'Share Product', // Android only
+      });
+    } catch (error) {
+      console.error('Error sharing product:', error.message);
+    }
+  };
+
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#000" />
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
+      <CustomLoader text="Fetching details..." />
     );
   }
 
@@ -245,16 +261,16 @@ const ProductDetailScreen = () => {
   const displayedFeatures = showAllFeatures ? features : features.slice(0, 3);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+    <View style={[styles.container, isDark && { backgroundColor: '#000' }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={isDark ? "#000" : "#fff"} />
 
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Icon name={IconNames.ArrowLeft} size={24} color="#000" />
+      <View style={[styles.header, isDark && { backgroundColor: '#000' }]}>
+        <TouchableOpacity style={[styles.headerButton, isDark && { backgroundColor: '#222' }]} onPress={() => navigation.goBack()}>
+          <Icon name={IconNames.ArrowLeft} size={24} color={isDark ? "#fff" : "#000"} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.headerButton}>
-          <Icon name={IconNames.Share} size={22} color="#000" />
+        <TouchableOpacity style={[styles.headerButton, isDark && { backgroundColor: '#222' }]} onPress={handleShare}>
+          <Icon name={IconNames.Share} size={22} color={isDark ? "#fff" : "#000"} />
         </TouchableOpacity>
       </View>
 
@@ -281,7 +297,7 @@ const ProductDetailScreen = () => {
                   <Image
                     key={index}
                     source={{ uri: url }}
-                    style={styles.productImage}
+                    style={[styles.productImage, isDark && { backgroundColor: '#111' }]}
                     resizeMode="contain"
                   />
                 ))}
@@ -302,8 +318,8 @@ const ProductDetailScreen = () => {
               )}
             </>
           ) : (
-            <View style={styles.imagePlaceholder}>
-              <Icon name={IconNames.ProductPlaceholder} size={64} color="#ccc" />
+            <View style={[styles.imagePlaceholder, isDark && { backgroundColor: '#111' }]}>
+              <Icon name={IconNames.ProductPlaceholder} size={64} color={isDark ? "#555" : "#ccc"} />
             </View>
           )}
         </View>
@@ -316,13 +332,13 @@ const ProductDetailScreen = () => {
           )}
 
           {/* Title */}
-          <Text style={styles.title} numberOfLines={3}>{title}</Text>
+          <Text style={[styles.title, isDark && { color: '#fff' }]} numberOfLines={3}>{title}</Text>
 
           {/* Price Section */}
           {priceInfo && (
             <View style={styles.priceSection}>
               <View style={styles.priceRow}>
-                <Text style={styles.price}>₹{priceInfo.amount?.toFixed(0)}</Text>
+                <Text style={[styles.price, isDark && { color: '#fff' }]}>₹{priceInfo.amount?.toFixed(0)}</Text>
 
                 {priceInfo.savings && (
                   <>
@@ -349,12 +365,12 @@ const ProductDetailScreen = () => {
           {/* Badges */}
           <View style={styles.badgeContainer}>
             {condition && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{condition}</Text>
+              <View style={[styles.badge, isDark && { backgroundColor: '#222' }]}>
+                <Text style={[styles.badgeText, isDark && { color: '#ccc' }]}>{condition}</Text>
               </View>
             )}
             {isPrime && (
-              <View style={[styles.badge, styles.primeBadge]}>
+              <View style={[styles.badge, styles.primeBadge, isDark && { backgroundColor: '#0d2d46' }]}>
                 <Text style={styles.primeText}>✓ Prime</Text>
               </View>
             )}
@@ -364,21 +380,21 @@ const ProductDetailScreen = () => {
           {(productInfo.color || productInfo.size) && (
             <View style={styles.infoPills}>
               {productInfo.color && (
-                <View style={styles.infoPill}>
+                <View style={[styles.infoPill, isDark && { backgroundColor: '#111', borderColor: '#333' }]}>
                   <Text style={styles.infoPillLabel}>Color</Text>
-                  <Text style={styles.infoPillValue}>{productInfo.color}</Text>
+                  <Text style={[styles.infoPillValue, isDark && { color: '#eee' }]}>{productInfo.color}</Text>
                 </View>
               )}
               {productInfo.size && (
-                <View style={styles.infoPill}>
+                <View style={[styles.infoPill, isDark && { backgroundColor: '#111', borderColor: '#333' }]}>
                   <Text style={styles.infoPillLabel}>Size</Text>
-                  <Text style={styles.infoPillValue}>{productInfo.size}</Text>
+                  <Text style={[styles.infoPillValue, isDark && { color: '#eee' }]}>{productInfo.size}</Text>
                 </View>
               )}
               {productInfo.weight && (
-                <View style={styles.infoPill}>
+                <View style={[styles.infoPill, isDark && { backgroundColor: '#111', borderColor: '#333' }]}>
                   <Text style={styles.infoPillLabel}>Weight</Text>
-                  <Text style={styles.infoPillValue}>
+                  <Text style={[styles.infoPillValue, isDark && { color: '#eee' }]}>
                     {productInfo.weight} {productInfo.unit || ''}
                   </Text>
                 </View>
@@ -389,12 +405,12 @@ const ProductDetailScreen = () => {
           {/* Features Section */}
           {features.length > 0 && (
             <View style={styles.featuresSection}>
-              <Text style={styles.sectionTitle}>Highlights</Text>
+              <Text style={[styles.sectionTitle, isDark && { color: '#fff' }]}>Highlights</Text>
 
               {displayedFeatures.map((feature, index) => (
                 <View key={index} style={styles.featureItem}>
-                  <View style={styles.featureBullet} />
-                  <Text style={styles.featureText}>{feature}</Text>
+                  <View style={[styles.featureBullet, isDark && { backgroundColor: '#fff' }]} />
+                  <Text style={[styles.featureText, isDark && { color: '#ccc' }]}>{feature}</Text>
                 </View>
               ))}
 
@@ -403,13 +419,13 @@ const ProductDetailScreen = () => {
                   style={styles.showMoreButton}
                   onPress={() => setShowAllFeatures(!showAllFeatures)}
                 >
-                  <Text style={styles.showMoreText}>
+                  <Text style={[styles.showMoreText, isDark && { color: '#fff' }]}>
                     {showAllFeatures ? 'Show Less' : `Show ${features.length - 3} More`}
                   </Text>
                   <Icon
                     name={showAllFeatures ? IconNames.ChevronUp : IconNames.ChevronDown}
                     size={16}
-                    color="#000"
+                    color={isDark ? "#fff" : "#000"}
                   />
                 </TouchableOpacity>
               )}
@@ -419,10 +435,10 @@ const ProductDetailScreen = () => {
       </ScrollView>
 
       {/* Fixed Bottom CTA */}
-      <View style={styles.bottomCTA}>
-        <TouchableOpacity style={styles.buyButton} onPress={openAmazonLink}>
-          <Text style={styles.buyButtonText}>View on Amazon</Text>
-          <Icon name={IconNames.ExternalLink} size={18} color="#fff" />
+      <View style={[styles.bottomCTA, isDark && { backgroundColor: '#000', borderTopColor: '#333' }]}>
+        <TouchableOpacity style={[styles.buyButton, isDark && { backgroundColor: '#fff' }]} onPress={openAmazonLink}>
+          <Text style={[styles.buyButtonText, isDark && { color: '#000' }]}>View on Amazon</Text>
+          <Icon name={IconNames.ExternalLink} size={18} color={isDark ? "#000" : "#fff"} />
         </TouchableOpacity>
       </View>
     </View>

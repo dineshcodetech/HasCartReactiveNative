@@ -26,6 +26,7 @@ const LoginScreen = () => {
     email: '',
     password: '',
     name: '',
+    mobile: '',
     confirmPassword: '',
   });
 
@@ -88,7 +89,12 @@ const LoginScreen = () => {
       const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
       const payload = isLogin
         ? { email: formData.email, password: formData.password }
-        : { name: formData.name, email: formData.email, password: formData.password };
+        : {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          mobile: formData.mobile
+        };
 
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
@@ -151,11 +157,24 @@ const LoginScreen = () => {
             {!isLogin && (
               <View>
                 <TextInput
-                  placeholder="FULL NAME"
+                  placeholder="Name"
                   placeholderTextColor="#9ca3af"
                   className="w-full border-b border-gray-200 py-3 text-base text-black font-medium tracking-wide"
                   value={formData.name}
                   onChangeText={value => handleInputChange('name', value)}
+                />
+              </View>
+            )}
+
+            {!isLogin && (
+              <View>
+                <TextInput
+                  placeholder="Mobile Number"
+                  placeholderTextColor="#9ca3af"
+                  className="w-full border-b border-gray-200 py-3 text-base text-black font-medium tracking-wide"
+                  value={formData.mobile}
+                  onChangeText={value => handleInputChange('mobile', value)}
+                  keyboardType="phone-pad"
                 />
               </View>
             )}

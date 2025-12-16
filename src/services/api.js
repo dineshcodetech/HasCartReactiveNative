@@ -3,7 +3,7 @@
 import { Platform } from 'react-native';
 
 // Environment variables are loaded from .env file
-import { PRODUCTION_API_URL, ANDROID_DEVICE_IP, IOS_DEVICE_IP, API_PORT } from '@env';
+import { PRODUCTION_API_URL, ANDROID_DEVICE_IP, IOS_DEVICE_IP, API_PORTt } from '@env';
 
 let API_BASE_URL;
 
@@ -15,12 +15,12 @@ if (PRODUCTION_API_URL && !PRODUCTION_API_URL.includes('localhost')) {
   if (Platform.OS === 'android') {
     // 10.0.2.2 is the special alias for host localhost in Android Emulator
     // Use the env var if provided (for physical devices), otherwise default to user's IP
-    const ip = ANDROID_DEVICE_IP || '172.20.10.2';
-    API_BASE_URL = `http://${ip}:${API_PORT || 3000}`;
+    const ip = ANDROID_DEVICE_IP || '10.0.2.2';
+    API_BASE_URL = `http://${ip}:${API_PORTt || 3001}`;
   } else {
     // iOS or other
     const ip = IOS_DEVICE_IP || 'localhost';
-    API_BASE_URL = `http://${ip}:${API_PORT || 3000}`;
+    API_BASE_URL = `http://${ip}:${API_PORTt || 3001}`;
   }
 }
 
