@@ -5,7 +5,8 @@ const { width } = Dimensions.get('window');
 const BANNER_HEIGHT = 200;
 
 const BannerCarousel = ({ banners = [] }) => {
-    const { isDark } = require('../context/ThemeContext').useTheme();
+    // const { isDark } = require('../context/ThemeContext').useTheme();
+    const isDark = false;
     const [activeIndex, setActiveIndex] = useState(0);
     const scrollRef = useRef(null);
 
@@ -94,7 +95,7 @@ const BannerCarousel = ({ banners = [] }) => {
                         key={index}
                         style={[
                             styles.dot,
-                            { backgroundColor: index === activeIndex ? (isDark ? '#fff' : '#000') : (isDark ? '#444' : '#E0E0E0') }
+                            { backgroundColor: index === activeIndex ? (isDark ? '#fff' : '#2B3990') : (isDark ? '#444' : '#E0E0E0') }
                         ]}
                     />
                 ))}

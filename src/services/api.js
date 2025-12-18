@@ -2,31 +2,35 @@
 
 import { Platform } from 'react-native';
 
-// Environment variables are loaded from .env file
-import { PRODUCTION_API_URL, ANDROID_DEVICE_IP, IOS_DEVICE_IP, API_PORTt } from '@env';
+import { PRODUCTION_API_URL, ANDROID_DEVICE_IP, IOS_DEVICE_IP, API_PORT } from '@env';
 
 let API_BASE_URL;
 
 if (PRODUCTION_API_URL && !PRODUCTION_API_URL.includes('localhost')) {
-  // Production mode - use the production backend URL
   API_BASE_URL = PRODUCTION_API_URL;
 } else {
-  // Development mode
   if (Platform.OS === 'android') {
-    // 10.0.2.2 is the special alias for host localhost in Android Emulator
-    // Use the env var if provided (for physical devices), otherwise default to user's IP
     const ip = ANDROID_DEVICE_IP || '10.0.2.2';
-    API_BASE_URL = `http://${ip}:${API_PORTt || 3001}`;
+    const port = API_PORT ? API_PORT.replace(':', '') : '3001';
+    API_BASE_URL = `http://${ip}:${port}`;
   } else {
-    // iOS or other
     const ip = IOS_DEVICE_IP || 'localhost';
-    API_BASE_URL = `http://${ip}:${API_PORTt || 3001}`;
+    const port = API_PORT ? API_PORT.replace(':', '') : '3001';
+    API_BASE_URL = `http://${ip}:${port}`;
   }
 }
 
-// Log the API URL for debugging
+// Sanitize URL to remove accidental double colons if PRODUCTION_API_URL had issues
+API_BASE_URL = API_BASE_URL.replace(/([^:]\/)\/+/g, "$1").replace('::', ':');
+
+
 console.log('API_BASE_URL configured as:', API_BASE_URL);
 console.log('Platform:', Platform.OS);
+
+// Web Base URL for sharing links (e.g. https://hascart.club)
+// You should add WEB_APP_URL to your .env file
+import { WEB_APP_URL } from '@env';
+export const WEB_BASE_URL = WEB_APP_URL || 'https://hascart.club';
 
 export { API_BASE_URL };
 

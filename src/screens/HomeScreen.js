@@ -18,12 +18,16 @@ import CustomLoader from '../components/CustomLoader';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const HomeScreen = ({ navigation }) => {
-  const { isDark } = require('../context/ThemeContext').useTheme();
+  // const { isDark } = require('../context/ThemeContext').useTheme();
+  const isDark = false;
   const [banners, setBanners] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [personalizedProducts, setPersonalizedProducts] = useState([]);
+  const [recentClicks, setRecentClicks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [userName, setUserName] = useState('');
+  const [activeTab, setActiveTab] = useState('For You');
 
   const fetchData = async () => {
     try {
@@ -34,20 +38,29 @@ const HomeScreen = ({ navigation }) => {
       }
 
       // Fetch Categories
-      // Using admin categories endpoint but strictly it should be a public endpoint. 
-      // Assuming /api/admin/categories might be protected, but let's try. 
-      // Ideally there should be a public /api/categories. checking permissions...
-      // The implementation plan used /api/admin/categories. If it fails due to 401, we might need to fallback or fix backend.
-      // Wait, categoryRoutes has router.get('/', getAllCategories) as Public! 
-      // And in server.js: app.use('/api/admin/categories', categoryRoutes);
-      // So /api/admin/categories/ is actually public for GET. Confusing naming but works.
       const categoriesRes = await apiCall('/api/admin/categories');
       if (categoriesRes.ok && categoriesRes.data.success) {
-        // Response structure is data.data.categories
         const allCats = categoriesRes.data.data.categories || [];
-        // Filter only active categories
         const activeCats = allCats.filter(c => c.status === 'active');
         setCategories(activeCats);
+      }
+
+      // Fetch Personalized Products (Suggestions)
+      const personalizedRes = await apiCall('/api/products/personalized');
+      if (personalizedRes.ok && personalizedRes.data.success) {
+        setPersonalizedProducts(personalizedRes.data.data?.SearchResult?.Items || []);
+      }
+
+      // Fetch Recent Clicks (Actual History)
+      const clicksRes = await apiCall('/api/analytics/my-clicks');
+      if (clicksRes.ok && clicksRes.data.success) {
+        const historyProducts = clicksRes.data.data.map(click => ({
+          ASIN: click.asin,
+          ItemInfo: { Title: { DisplayValue: click.productName } },
+          Images: { Primary: { Large: { URL: click.imageUrl } } },
+          DetailPageURL: click.productUrl,
+        }));
+        setRecentClicks(historyProducts);
       }
 
       // Get user name
@@ -74,18 +87,40 @@ const HomeScreen = ({ navigation }) => {
     fetchData();
   }, []);
 
-  const renderHeader = () => (
-    <View style={[styles.header, isDark && { backgroundColor: '#000' }]}>
-      <View>
-        <Text style={[styles.greeting, isDark && { color: '#bbb' }]}>Hello, {userName || 'Guest'}</Text>
-        <Text style={[styles.appTitle, isDark && { color: '#fff' }]}>HasCart Premium</Text>
+  const renderSearchHeader = () => (
+    <View style={styles.topContainer}>
+      <View style={styles.searchBarWrapper}>
+        <TouchableOpacity
+          style={styles.searchBar}
+          activeOpacity={0.9}
+          onPress={() => navigation.navigate('Products', { focusSearch: true })}
+        >
+          <Icon name="search" size={20} color="#666" style={styles.searchIcon} />
+          <Text style={styles.searchText}>Search products...</Text>
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity
-        style={styles.cartButton}
-        onPress={() => navigation.navigate('Products')} // Or Cart if it existed
-      >
-        <Icon name="shopping-bag" size={24} color={isDark ? "#fff" : "#000"} />
-      </TouchableOpacity>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsRow}>
+        {[
+          { name: 'For You', icon: 'shopping-bag' },
+          { name: 'Fashion', icon: 'checkroom' },
+          { name: 'Mobiles', icon: 'smartphone' },
+          { name: 'Electronics', icon: 'laptop' },
+          { name: 'Appliances', icon: 'tv' },
+          { name: 'Beauty', icon: 'spa' },
+        ].map((tab, i) => (
+          <TouchableOpacity
+            key={i}
+            style={styles.tabItem}
+            onPress={() => setActiveTab(tab.name)}
+          >
+            <View style={[styles.tabIconContainer, activeTab === tab.name && styles.activeTabIcon]}>
+              <Icon name={tab.icon} size={24} color={activeTab === tab.name ? "#2B3990" : "#fff"} />
+            </View>
+            <Text style={[styles.tabText, activeTab === tab.name && styles.activeTabText]}>{tab.name}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
     </View>
   );
 
@@ -95,16 +130,22 @@ const HomeScreen = ({ navigation }) => {
     );
   }
 
-  return (
-    <SafeAreaView style={[styles.safeArea, isDark && { backgroundColor: '#000' }]}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={isDark ? "#000" : "#fff"} />
+  // Filter content based on active tab
+  const filteredCategories = activeTab === 'For You'
+    ? [] // For You shows special rows
+    : categories.filter(c => c.name.toLowerCase().includes(activeTab.toLowerCase()) || (c.amazonSearchIndex || '').toLowerCase().includes(activeTab.toLowerCase()));
 
-      {renderHeader()}
+  return (
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: '#2B3990' }]}>
+      <StatusBar barStyle="light-content" backgroundColor="#2B3990" />
+
+      {renderSearchHeader()}
 
       <ScrollView
         showsVerticalScrollIndicator={false}
+        style={{ backgroundColor: '#fff' }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[isDark ? '#fff' : '#4CAF50']} tintColor={isDark ? '#fff' : '#4CAF50'} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#2B3990', '#76BA1B']} tintColor='#2B3990' />
         }
         contentContainerStyle={{ paddingBottom: 20 }}
       >
@@ -115,9 +156,46 @@ const HomeScreen = ({ navigation }) => {
 
         {/* Categories Section */}
         <View style={styles.categoriesContainer}>
-          {categories.map((category) => (
+          {activeTab === 'For You' && (
+            <>
+              {recentClicks.length > 0 && (
+                <CategoryRow
+                  category={{
+                    name: 'Recently Viewed',
+                    _id: 'recent-clicks',
+                    amazonSearchIndex: 'All'
+                  }}
+                  initialProducts={recentClicks}
+                />
+              )}
+
+              {personalizedProducts.length > 0 && (
+                <CategoryRow
+                  category={{
+                    name: 'Recommended for You',
+                    _id: 'personalized',
+                    amazonSearchIndex: 'All'
+                  }}
+                  initialProducts={personalizedProducts}
+                />
+              )}
+
+              {/* Also show a few top categories even in For You? User said "only categories from the list" if for u */}
+              {categories.slice(0, 3).map((category) => (
+                <CategoryRow key={category._id} category={category} />
+              ))}
+            </>
+          )}
+
+          {activeTab !== 'For You' && filteredCategories.map((category) => (
             <CategoryRow key={category._id} category={category} />
           ))}
+
+          {activeTab !== 'For You' && filteredCategories.length === 0 && (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No {activeTab} categories found</Text>
+            </View>
+          )}
         </View>
 
         {categories.length === 0 && !loading && (
@@ -136,44 +214,89 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+  topContainer: {
+    backgroundColor: '#2B3990', // Brand blue
+    paddingTop: 8,
+    paddingBottom: 16,
   },
-  header: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  searchBarWrapper: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  searchBar: {
+    flex: 1,
+    height: 48,
     backgroundColor: '#fff',
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
   },
-  greeting: {
-    fontSize: 14,
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchText: {
+    flex: 1,
     color: '#666',
-    marginBottom: 4,
+    fontSize: 16,
   },
-  appTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
-    letterSpacing: 0.5,
+  rightIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  cartButton: {
+  scanButton: {
+    marginLeft: 12,
     padding: 8,
   },
+  tabsRow: {
+    paddingLeft: 16,
+    paddingRight: 8,
+  },
+  tabItem: {
+    alignItems: 'center',
+    marginRight: 24,
+    width: 65,
+  },
+  tabIconContainer: {
+    width: 55,
+    height: 55,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  activeTabIcon: {
+    backgroundColor: '#fff',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  tabText: {
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  activeTabText: {
+    fontWeight: '700',
+    opacity: 1,
+  },
   categoriesContainer: {
-    marginTop: 24,
+    marginTop: 12,
   },
   emptyState: {
-    padding: 40,
+    padding: 60,
     alignItems: 'center',
   },
   emptyText: {
     color: '#999',
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 

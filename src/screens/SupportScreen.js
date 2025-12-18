@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Linking, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from '../components/Icon';
-import { useTheme } from '../context/ThemeContext';
+// import { useTheme } from '../context/ThemeContext';
 
 if (Platform.OS === 'android') {
     if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -12,7 +12,8 @@ if (Platform.OS === 'android') {
 
 const SupportScreen = () => {
     const navigation = useNavigation();
-    const { isDark } = useTheme();
+    // const { isDark } = useTheme();
+    const isDark = false;
     const [expandedFaq, setExpandedFaq] = useState(null);
 
     const toggleFaq = (index) => {
@@ -31,7 +32,7 @@ const SupportScreen = () => {
     const ContactOption = ({ icon, label, value, onPress, isPrimary = false }) => (
         <TouchableOpacity
             onPress={onPress}
-            className={`flex-1 p-4 rounded-xl border ${isPrimary ? 'bg-black border-black dark:bg-white dark:border-white' : 'bg-white border-gray-100 dark:bg-gray-900 dark:border-gray-800'} items-center mr-3 last:mr-0`}
+            className={`flex-1 p-4 rounded-xl border ${isPrimary ? 'bg-primary border-primary dark:bg-white dark:border-white' : 'bg-white border-gray-100 dark:bg-gray-900 dark:border-gray-800'} items-center mr-3 last:mr-0`}
         >
             <Icon name={icon} size={24} color={isPrimary ? (isDark ? '#000' : '#fff') : (isDark ? '#fff' : '#000')} />
             <Text className={`mt-3 font-bold ${isPrimary ? 'text-white dark:text-black' : 'text-black dark:text-white'}`}>{label}</Text>

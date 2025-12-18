@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StyleSheet, ActivityIndicator, View, Text } from 'react-native';
+import { StyleSheet, ActivityIndicator, View, Text, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import './global.css';
 
@@ -16,7 +16,7 @@ import AboutUsScreen from './src/screens/AboutUsScreen';
 import SupportScreen from './src/screens/SupportScreen';
 import Icon from './src/components/Icon';
 import { IconNames } from './src/config/icons';
-import { ThemeProvider } from './src/context/ThemeContext';
+// import { ThemeProvider } from './src/context/ThemeContext';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -33,7 +33,7 @@ const TabBarIcon = ({ label, focused }) => {
     <Icon
       name={iconMap[label] || label}
       size={24}
-      color={focused ? '#4CAF50' : '#999'}
+      color={focused ? '#2B3990' : '#999'}
     />
   );
 };
@@ -46,25 +46,24 @@ function MainTabs() {
         // We can access theme here if we move MainTabs inside ThemeProvider
         // But MainTabs is inside ThemeProvider in App()
         // We can use a hook here? No, must be inside component.
-        // Let's use useTheme or useColorScheme from nativewind
-        const { colorScheme } = require('nativewind').useColorScheme();
-        const isDark = colorScheme === 'dark';
+        // Forcing light mode for navigation
+        const isDark = false;
 
         return {
           tabBarIcon: ({ focused }) => (
             <TabBarIcon label={route.name} focused={focused} />
           ),
-          tabBarActiveTintColor: isDark ? '#fff' : '#4CAF50',
-          tabBarInactiveTintColor: isDark ? '#666' : '#999',
+          tabBarActiveTintColor: '#2B3990',
+          tabBarInactiveTintColor: '#999',
           tabBarStyle: {
             ...styles.tabBar,
-            backgroundColor: isDark ? '#000' : '#fff',
-            borderTopColor: isDark ? '#333' : '#e0e0e0',
+            backgroundColor: '#fff',
+            borderTopColor: '#e0e0e0',
           },
           tabBarLabelStyle: styles.tabLabel,
           headerStyle: {
             ...styles.header,
-            backgroundColor: isDark ? '#000' : '#4CAF50',
+            backgroundColor: '#2B3990',
           },
           headerTintColor: '#fff',
           headerTitleStyle: styles.headerTitle,
@@ -139,17 +138,18 @@ export default function App() {
       <View style={styles.splashContainer}>
         {/* Center Logo */}
         <View style={styles.splashLogoContainer}>
-          <Icon name="shopping-bag" size={64} color="#000" />
-          <View style={{ height: 16 }} />
-          {/* Cannot use className here easily as styles is used for main structure, using standard styles for safety in root */}
-          <Text style={styles.splashTitle}>HASCART</Text>
+          <Image
+            source={require('./assets/logo.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         </View>
 
         {/* Bottom Branding */}
         <View style={styles.splashFooter}>
           <Text style={styles.splashFromText}>from</Text>
           <View style={styles.splashBrandRow}>
-            <Icon name="whatshot" size={20} color="#FF9900" />
+            <Icon name="local-shipping" size={20} color="#FF9900" />
             <Text style={styles.splashBrandName}> Amazon</Text>
           </View>
         </View>
@@ -158,55 +158,53 @@ export default function App() {
   }
 
   return (
-    <ThemeProvider>
-      <NavigationContainer>
-        <Stack.Navigator
-          screenOptions={{ headerShown: false }}
-          initialRouteName={isAuthenticated ? 'MainTabs' : 'Login'}>
-          <Stack.Screen
-            name="Login"
-            component={LoginScreen}
-            options={{ animationEnabled: false }}
-          />
-          <Stack.Screen
-            name="MainTabs"
-            component={MainTabs}
-            options={{ animationEnabled: false }}
-          />
-          <Stack.Screen
-            name="ProductDetail"
-            component={ProductDetailScreen}
-            options={{
-              headerShown: false,
-              presentation: 'card',
-            }}
-          />
-          <Stack.Screen
-            name="Products"
-            component={ProductsScreen}
-            options={{
-              headerShown: true, // Show header for back button
-              title: 'Products',
-              headerBackTitleVisible: false,
-              headerStyle: {
-                backgroundColor: '#fff',
-              },
-              headerTintColor: '#000',
-            }}
-          />
-          <Stack.Screen
-            name="AboutUs"
-            component={AboutUsScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Support"
-            component={SupportScreen}
-            options={{ headerShown: false }}
-          />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </ThemeProvider>
+    <NavigationContainer>
+      <Stack.Navigator
+        screenOptions={{ headerShown: false }}
+        initialRouteName={isAuthenticated ? 'MainTabs' : 'Login'}>
+        <Stack.Screen
+          name="Login"
+          component={LoginScreen}
+          options={{ animationEnabled: false }}
+        />
+        <Stack.Screen
+          name="MainTabs"
+          component={MainTabs}
+          options={{ animationEnabled: false }}
+        />
+        <Stack.Screen
+          name="ProductDetail"
+          component={ProductDetailScreen}
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+        <Stack.Screen
+          name="Products"
+          component={ProductsScreen}
+          options={{
+            headerShown: true, // Show header for back button
+            title: 'Products',
+            headerBackTitleVisible: false,
+            headerStyle: {
+              backgroundColor: '#fff',
+            },
+            headerTintColor: '#000',
+          }}
+        />
+        <Stack.Screen
+          name="AboutUs"
+          component={AboutUsScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Support"
+          component={SupportScreen}
+          options={{ headerShown: false }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 
@@ -230,7 +228,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.1 }],
   },
   header: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#2B3990',
     elevation: 0,
     shadowOpacity: 0,
   },
@@ -247,6 +245,12 @@ const styles = StyleSheet.create({
   splashLogoContainer: {
     alignItems: 'center',
     marginBottom: 40,
+    width: '80%',
+    height: 200,
+  },
+  logoImage: {
+    width: '100%',
+    height: '100%',
   },
   splashTitle: {
     fontSize: 32,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,11 @@ import {
   ActivityIndicator,
   Image,
   Dimensions,
+  RefreshControl,
+  Share,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { apiCall } from '../services/api';
+import { apiCall, WEB_BASE_URL } from '../services/api';
 import Icon from '../components/Icon';
 import CustomLoader from '../components/CustomLoader';
 import { styled } from 'nativewind';
@@ -23,7 +25,9 @@ const DEFAULT_FILTER = { id: 'all', label: 'All', query: 'trending products', se
 
 const ProductsScreen = ({ route }) => {
   const navigation = useNavigation();
-  const { isDark } = require('../context/ThemeContext').useTheme(); // Access global theme
+  // const { isDark } = require('../context/ThemeContext').useTheme(); // Access global theme
+  const isDark = false;
+  const searchInputRef = useRef(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -32,6 +36,8 @@ const ProductsScreen = ({ route }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [user, setUser] = useState(null);
 
   // Dynamic categories from backend
   const [categories, setCategories] = useState([DEFAULT_FILTER]);
@@ -70,7 +76,15 @@ const ProductsScreen = ({ route }) => {
 
   useEffect(() => {
     fetchCategories();
+    loadUser();
   }, [fetchCategories]);
+
+  const loadUser = async () => {
+    const userData = await AsyncStorage.getItem('userData');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  };
 
   const fetchProducts = useCallback(async (query, searchIndex = 'All', page = 1, shouldAppend = false) => {
     if (!hasMore && shouldAppend) return;
@@ -108,8 +122,16 @@ const ProductsScreen = ({ route }) => {
     } finally {
       setLoading(false);
       setLoadingMore(false);
+      setRefreshing(false);
     }
   }, [hasMore]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setCurrentPage(1);
+    setHasMore(true);
+    fetchProducts(searchQuery || DEFAULT_FILTER.query, DEFAULT_FILTER.searchIndex, 1, false);
+  }, [searchQuery]);
 
   /* Updated to handle route params from Categories screen or others */
   useEffect(() => {
@@ -143,6 +165,13 @@ const ProductsScreen = ({ route }) => {
     } else {
       // Default behavior
       fetchProducts(DEFAULT_FILTER.query, DEFAULT_FILTER.searchIndex);
+    }
+
+    // Auto-focus search if requested
+    if (params.focusSearch) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 500);
     }
   }, [route.params, navigation, categories]);
 
@@ -192,9 +221,24 @@ const ProductsScreen = ({ route }) => {
     if (!loadingMore) return null;
     return (
       <View className="py-4">
-        <ActivityIndicator size="small" color={isDark ? "#fff" : "#000"} />
+        <ActivityIndicator size="small" color={isDark ? "#fff" : "#2B3990"} />
       </View>
     );
+  };
+
+  const handleShare = async (product) => {
+    try {
+      const title = product.ItemInfo?.Title?.DisplayValue || product.Title || 'Product';
+      const asin = product.ASIN;
+      const referralCode = user?.referralCode || '';
+      const shareUrl = `${WEB_BASE_URL}/product/${asin}${referralCode ? `?ref=${referralCode}` : ''}`;
+
+      await Share.share({
+        message: `${title}\n\nCheck this out on HasCart: ${shareUrl}`,
+      });
+    } catch (error) {
+      console.error('Error sharing product:', error);
+    }
   };
 
   const renderProduct = ({ item }) => {
@@ -244,7 +288,7 @@ const ProductsScreen = ({ route }) => {
             {/* Rating Row - Only show if rating exists */}
             {rating && (
               <View className="flex-row items-center mb-1">
-                <View className="bg-green-700 px-1.5 py-0.5 rounded flex-row items-center mr-2">
+                <View className="bg-secondary px-1.5 py-0.5 rounded flex-row items-center mr-2">
                   <Text className="text-white text-[10px] font-bold mr-0.5">{rating}</Text>
                   <Icon name="star" size={8} color="#fff" />
                 </View>
@@ -255,9 +299,18 @@ const ProductsScreen = ({ route }) => {
             <Text className="text-lg font-bold text-gray-900 dark:text-gray-100">{price}</Text>
           </View>
 
-          {/* Wishlist Icon absolute top right */}
-          <TouchableOpacity className="absolute top-0 right-0 p-1">
-            <Icon name="favorite-border" size={20} color="#ccc" />
+          {/* Wishlist/Share Icon absolute top right */}
+          <TouchableOpacity
+            className="absolute top-0 right-0 p-1"
+            onPress={(e) => {
+              if (user?.role === 'agent' || user?.role === 'admin') {
+                handleShare(item);
+              }
+            }}
+          >
+            {(user?.role === 'agent' || user?.role === 'admin') ? (
+              <Icon name="share" size={20} color="#2B3990" />
+            ) : null}
           </TouchableOpacity>
         </View>
 
@@ -291,6 +344,7 @@ const ProductsScreen = ({ route }) => {
         <View className="flex-row items-center bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2.5 mb-3">
           <Icon name="search" size={20} color="#999" style={{ marginRight: 8 }} />
           <TextInput
+            ref={searchInputRef}
             placeholder="Search products..."
             placeholderTextColor="#999"
             className="flex-1 text-base text-black dark:text-white font-medium p-0"
@@ -319,9 +373,9 @@ const ProductsScreen = ({ route }) => {
                   return (
                     <TouchableOpacity
                       onPress={() => handleFilterPress(item)}
-                      className={`mr-2 px-4 py-1.5 rounded-full border ${isActive ? 'bg-black border-black dark:bg-white dark:border-white' : 'bg-white border-gray-300 dark:bg-gray-800 dark:border-gray-700'} `}
+                      className={`mr-2 px-4 py-1.5 rounded-full border ${isActive ? 'bg-primary border-primary dark:bg-white dark:border-white' : 'bg-white border-gray-300 dark:bg-gray-800 dark:border-gray-700'} `}
                     >
-                      <Text className={`text-xs font-bold tracking-wide ${isActive ? 'text-white dark:text-black' : 'text-gray-700 dark:text-gray-300'} `}>
+                      <Text className={`text-xs font-bold tracking-wide ${isActive ? 'text-white dark:text-primary' : 'text-gray-700 dark:text-gray-300'} `}>
                         {item.label}
                       </Text>
                     </TouchableOpacity>
@@ -341,8 +395,8 @@ const ProductsScreen = ({ route }) => {
           <View className="flex-1 justify-center items-center">
             <Icon name="cloud-off" size={32} color={isDark ? "#999" : "#000"} />
             <Text className="text-gray-400 mt-4">{error}</Text>
-            <TouchableOpacity onPress={() => fetchProducts(searchQuery || DEFAULT_FILTER.query, DEFAULT_FILTER.searchIndex)} className="mt-4 border-b border-black dark:border-white">
-              <Text className="text-black dark:text-white font-bold">RELOAD</Text>
+            <TouchableOpacity onPress={() => fetchProducts(searchQuery || DEFAULT_FILTER.query, DEFAULT_FILTER.searchIndex)} className="mt-4 border-b border-primary dark:border-white">
+              <Text className="text-primary dark:text-white font-bold">RELOAD</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -356,6 +410,14 @@ const ProductsScreen = ({ route }) => {
             onEndReached={loadMore}
             onEndReachedThreshold={0.5}
             ListFooterComponent={renderFooter}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={['#2B3990', '#76BA1B']}
+                tintColor={isDark ? '#fff' : '#2B3990'}
+              />
+            }
           />
         )}
       </View>

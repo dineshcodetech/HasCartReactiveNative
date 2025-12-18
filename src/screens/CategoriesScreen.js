@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -7,7 +7,8 @@ import {
     FlatList,
     Image,
     ActivityIndicator,
-    Dimensions
+    Dimensions,
+    RefreshControl
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { apiCall } from '../services/api';
@@ -20,12 +21,14 @@ const SIDEBAR_WIDTH = width * 0.25; // 25% for sidebar
 
 const CategoriesScreen = () => {
     const navigation = useNavigation();
-    const { isDark } = require('../context/ThemeContext').useTheme();
+    // const { isDark } = require('../context/ThemeContext').useTheme();
+    const isDark = false;
     const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [products, setProducts] = useState([]);
     const [loadingProducts, setLoadingProducts] = useState(false);
     const [loadingCategories, setLoadingCategories] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
     // Initial load: Fetch categories
     useEffect(() => {
@@ -74,8 +77,17 @@ const CategoriesScreen = () => {
             setProducts([]);
         } finally {
             setLoadingProducts(false);
+            setRefreshing(false);
         }
     };
+
+    const onRefresh = useCallback(() => {
+        setRefreshing(true);
+        fetchCategories();
+        if (selectedCategory) {
+            fetchProducts(selectedCategory);
+        }
+    }, [selectedCategory]);
 
     const getCategoryIcon = (category) => {
         const index = category.amazonSearchIndex || category.name;
@@ -113,7 +125,7 @@ const CategoriesScreen = () => {
 
         return (
             <TouchableOpacity
-                style={[styles.sidebarItem, isDark && { borderBottomColor: '#222' }, isSelected && styles.sidebarItemSelected, isSelected && isDark && { backgroundColor: '#000', borderLeftColor: '#2874f0' }]}
+                style={[styles.sidebarItem, isDark && { borderBottomColor: '#222' }, isSelected && styles.sidebarItemSelected, isSelected && isDark && { backgroundColor: '#000', borderLeftColor: '#2B3990' }]}
                 onPress={() => setSelectedCategory(item)}
                 activeOpacity={0.8}
             >
@@ -121,7 +133,7 @@ const CategoriesScreen = () => {
                     <Icon
                         name={iconName}
                         size={24}
-                        color={isSelected ? '#2874f0' : isDark ? '#fff' : '#666'}
+                        color={isSelected ? '#2B3990' : isDark ? '#fff' : '#666'}
                     />
                 </View>
                 <Text style={[styles.sidebarText, isDark && { color: '#ccc' }, isSelected && styles.sidebarTextSelected]}>
@@ -168,7 +180,10 @@ const CategoriesScreen = () => {
             <View style={[styles.header, isDark && { backgroundColor: '#000', borderBottomColor: '#222' }]}>
                 <Text style={[styles.headerTitle, isDark && { color: '#fff' }]}>All Categories</Text>
                 <View style={styles.headerIcons}>
-                    <TouchableOpacity style={styles.iconButton}>
+                    <TouchableOpacity
+                        style={styles.iconButton}
+                        onPress={() => navigation.navigate('Products', { focusSearch: true })}
+                    >
                         <Icon name="search" size={24} color={isDark ? '#fff' : '#000'} />
                     </TouchableOpacity>
                 </View>
@@ -178,7 +193,7 @@ const CategoriesScreen = () => {
                 {/* Sidebar */}
                 <View style={[styles.sidebar, isDark && { backgroundColor: '#111', borderRightColor: '#222' }]}>
                     {loadingCategories ? (
-                        <ActivityIndicator size="small" color="#2874f0" />
+                        <ActivityIndicator size="small" color="#2B3990" />
                     ) : (
                         <FlatList
                             data={categories}
@@ -212,6 +227,14 @@ const CategoriesScreen = () => {
                                         <Text style={styles.viewAllText}>View All</Text>
                                     </TouchableOpacity>
                                 </View>
+                            }
+                            refreshControl={
+                                <RefreshControl
+                                    refreshing={refreshing}
+                                    onRefresh={onRefresh}
+                                    colors={['#2B3990', '#76BA1B']}
+                                    tintColor={isDark ? '#fff' : '#2B3990'}
+                                />
                             }
                         />
                     )}
@@ -273,7 +296,7 @@ const styles = StyleSheet.create({
     sidebarItemSelected: {
         backgroundColor: '#fff',
         borderLeftWidth: 4,
-        borderLeftColor: '#2874f0', // Flipkart Blue
+        borderLeftColor: '#2B3990', // Brand Blue
     },
     sidebarIconContainer: {
         width: 48,
@@ -286,7 +309,7 @@ const styles = StyleSheet.create({
         elevation: 1,
     },
     sidebarIconSelected: {
-        backgroundColor: '#e6f0ff', // Light blue bg
+        backgroundColor: '#eef2ff', // Light brand blue bg
     },
     sidebarText: {
         fontSize: 11,
@@ -295,7 +318,7 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     sidebarTextSelected: {
-        color: '#2874f0',
+        color: '#2B3990',
         fontWeight: '700',
     },
     mainContent: {
@@ -317,7 +340,7 @@ const styles = StyleSheet.create({
     viewAllText: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#2874f0',
+        color: '#2B3990',
     },
     centered: {
         flex: 1,

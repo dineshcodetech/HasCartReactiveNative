@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, ActivityIndicator, Share } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { apiCall } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiCall, WEB_BASE_URL } from '../services/api';
 import Icon from './Icon';
 
-const ProductCard = ({ product, onPress, isDark }) => {
+const ProductCard = ({ product, onPress, onShare, isDark, isAgent }) => {
     // Extract image URL safely
     const validImage =
         product.Images?.Primary?.Large?.URL ||
@@ -32,26 +33,82 @@ const ProductCard = ({ product, onPress, isDark }) => {
     );
 };
 
-const CategoryRow = ({ category }) => {
+const CategoryRow = ({ category, initialProducts = [] }) => {
     const navigation = useNavigation();
-    const { isDark } = require('../context/ThemeContext').useTheme();
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
+    // const { isDark } = require('../context/ThemeContext').useTheme();
+    const isDark = false;
+    const [products, setProducts] = useState(initialProducts || []);
+    const [loading, setLoading] = useState(!initialProducts || initialProducts.length === 0);
+    const [hasFetched, setHasFetched] = useState(false);
+    const [user, setUser] = useState(null);
 
     useEffect(() => {
-        fetchProducts();
+        const loadUser = async () => {
+            const userData = await AsyncStorage.getItem('userData');
+            if (userData) {
+                setUser(JSON.parse(userData));
+            }
+        };
+        loadUser();
+    }, []);
+
+    useEffect(() => {
+        // If we were given products, use them and don't fetch
+        if (initialProducts && initialProducts.length > 0) {
+            setProducts(initialProducts);
+            setLoading(false);
+            return;
+        }
+
+        // Only fetch if we haven't fetched for this specific category ID yet
+        if (!hasFetched && (!initialProducts || initialProducts.length === 0)) {
+            fetchProducts();
+            setHasFetched(true);
+        }
+    }, [category._id, initialProducts?.length]);
+
+    // Reset fetch state if category ID changes
+    useEffect(() => {
+        setHasFetched(false);
     }, [category._id]);
 
     const fetchProducts = async () => {
         try {
-            const keyword = category.searchQuery || category.name || 'Best Sellers';
-            const endpoint = `/api/products/category/${category.amazonSearchIndex || 'All'}?keywords=${encodeURIComponent(keyword)}&itemCount=6`;
+            let fetchedProducts = [];
 
-            const response = await apiCall(endpoint);
+            // 1. First check for curated products (selectedProducts)
+            if (category.selectedProducts && category.selectedProducts.length > 0) {
+                const curatedResponse = await apiCall('/api/products/items', {
+                    method: 'POST',
+                    body: JSON.stringify({ itemIds: category.selectedProducts.slice(0, 10) })
+                });
 
-            if (response.ok && response.data && response.data.data && response.data.data.SearchResult && response.data.data.SearchResult.Items) {
-                setProducts(response.data.data.SearchResult.Items);
+                if (curatedResponse.ok && curatedResponse.data?.data?.ItemsResult?.Items) {
+                    fetchedProducts = curatedResponse.data.data.ItemsResult.Items;
+                }
             }
+
+            // 2. If no curated products or we want to mix, fill with search
+            if (fetchedProducts.length < 6) {
+                const keyword = (category.searchQueries && category.searchQueries.length > 0)
+                    ? category.searchQueries[0]
+                    : (category.searchQuery || category.name || 'Best Sellers');
+
+                const endpoint = `/api/products/category/${category.amazonSearchIndex || 'All'}?keywords=${encodeURIComponent(keyword)}&itemCount=${10 - fetchedProducts.length}`;
+
+                const searchResponse = await apiCall(endpoint);
+
+                if (searchResponse.ok && searchResponse.data?.data?.SearchResult?.Items) {
+                    const searchItems = searchResponse.data.data.SearchResult.Items;
+                    // Filter out already fetched curated products to avoid duplicates
+                    const existingAsins = new Set(fetchedProducts.map(p => p.ASIN));
+                    const newItems = searchItems.filter(p => !existingAsins.has(p.ASIN));
+
+                    fetchedProducts = [...fetchedProducts, ...newItems];
+                }
+            }
+
+            setProducts(fetchedProducts.slice(0, 10));
         } catch (error) {
             console.log(`Failed to fetch products for ${category.name}`, error);
         } finally {
@@ -67,10 +124,25 @@ const CategoryRow = ({ category }) => {
         navigation.navigate('ProductDetail', { product });
     };
 
+    const handleShare = async (product) => {
+        try {
+            const title = product.ItemInfo?.Title?.DisplayValue || 'Product';
+            const asin = product.ASIN;
+            const referralCode = user?.referralCode || '';
+            const shareUrl = `${WEB_BASE_URL}/product/${asin}${referralCode ? `?ref=${referralCode}` : ''}`;
+
+            await Share.share({
+                message: `${title}\n\nCheck this out on HasCart: ${shareUrl}`,
+            });
+        } catch (error) {
+            console.error('Error sharing product:', error);
+        }
+    };
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#0ecb81" />
+                <ActivityIndicator size="small" color="#76BA1B" />
             </View>
         );
     }
@@ -98,13 +170,15 @@ const CategoryRow = ({ category }) => {
                         key={product.ASIN || index}
                         product={product}
                         onPress={() => handleProductPress(product)}
+                        onShare={handleShare}
                         isDark={isDark}
+                        isAgent={user?.role === 'agent' || user?.role === 'admin'}
                     />
                 ))}
 
                 <TouchableOpacity style={[styles.seeAllCard, isDark && { backgroundColor: '#111', borderColor: '#333' }]} onPress={handleSeeAll}>
-                    <View style={[styles.seeAllCircle, isDark && { backgroundColor: '#0d2d46' }]}>
-                        <Icon name="arrow-forward" size={24} color="#0ecb81" />
+                    <View style={[styles.seeAllCircle, isDark && { backgroundColor: '#1A237E' }]}>
+                        <Icon name="arrow-forward" size={24} color="#76BA1B" />
                     </View>
                     <Text style={styles.seeAllCardText}>See All</Text>
                 </TouchableOpacity>
@@ -139,7 +213,7 @@ const styles = StyleSheet.create({
     },
     seeAllText: {
         fontSize: 14,
-        color: '#0ecb81', // Blinkit green-ish
+        color: '#76BA1B',
         fontWeight: '600',
     },
     listContent: {
@@ -163,6 +237,18 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         alignItems: 'center',
         justifyContent: 'center',
+        position: 'relative',
+    },
+    shareOverlay: {
+        position: 'absolute',
+        top: 5,
+        right: 5,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        borderRadius: 15,
+        width: 30,
+        height: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     image: {
         width: '100%',
@@ -193,13 +279,13 @@ const styles = StyleSheet.create({
     addBtnPlaceholder: {
         backgroundColor: '#f0fdf4',
         borderWidth: 1,
-        borderColor: '#0ecb81',
+        borderColor: '#76BA1B',
         borderRadius: 6,
         paddingHorizontal: 12,
         paddingVertical: 4,
     },
     addBtnText: {
-        color: '#0ecb81',
+        color: '#76BA1B',
         fontSize: 11,
         fontWeight: '700',
     },
@@ -218,7 +304,7 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: '#f0fdf4',
+        backgroundColor: '#f0fff4', // Light brand green
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 8,

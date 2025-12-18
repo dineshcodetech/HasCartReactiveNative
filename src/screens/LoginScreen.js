@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
   Animated,
+  Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -28,6 +29,7 @@ const LoginScreen = () => {
     name: '',
     mobile: '',
     confirmPassword: '',
+    referralCode: '',
   });
 
   const fadeAnim = new Animated.Value(0);
@@ -93,7 +95,8 @@ const LoginScreen = () => {
           name: formData.name,
           email: formData.email,
           password: formData.password,
-          mobile: formData.mobile
+          mobile: formData.mobile,
+          referralCode: formData.referralCode
         };
 
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -141,10 +144,14 @@ const LoginScreen = () => {
 
           {/* Minimalist Logo Area */}
           <View className="items-center mb-12">
-            <View className="w-16 h-16 bg-black rounded-sm items-center justify-center mb-6">
-              <Icon name="shopping-bag" size={28} color="#fff" />
+            <View className="w-24 h-24 items-center justify-center mb-6">
+              <Image
+                source={require('../../assets/logo.png')}
+                style={{ width: '100%', height: '100%' }}
+                resizeMode="contain"
+              />
             </View>
-            <Text className="text-3xl font-light tracking-[0.2em] text-black">
+            <Text className="text-3xl font-bold tracking-[0.2em] text-primary">
               HASCART
             </Text>
             <Text className="text-xs text-gray-400 mt-2 tracking-widest uppercase">
@@ -191,17 +198,6 @@ const LoginScreen = () => {
               />
             </View>
 
-            <View>
-              <TextInput
-                placeholder="PASSWORD"
-                placeholderTextColor="#9ca3af"
-                className="w-full border-b border-gray-200 py-3 text-base text-black font-medium tracking-wide"
-                value={formData.password}
-                onChangeText={value => handleInputChange('password', value)}
-                secureTextEntry
-              />
-            </View>
-
             {!isLogin && (
               <View>
                 <TextInput
@@ -215,8 +211,21 @@ const LoginScreen = () => {
               </View>
             )}
 
+            {!isLogin && (
+              <View>
+                <TextInput
+                  placeholder="REFERRAL CODE (OPTIONAL)"
+                  placeholderTextColor="#9ca3af"
+                  className="w-full border-b border-gray-200 py-3 text-base text-black font-medium tracking-wide uppercase"
+                  value={formData.referralCode}
+                  onChangeText={value => handleInputChange('referralCode', value.toUpperCase())}
+                  autoCapitalize="characters"
+                />
+              </View>
+            )}
+
             <TouchableOpacity
-              className="w-full bg-black py-5 mt-8 items-center active:bg-gray-800"
+              className="w-full bg-primary py-5 mt-8 items-center active:bg-blue-900 rounded-lg shadow-md"
               onPress={handleSubmit}
               disabled={loading}
             >
@@ -234,7 +243,7 @@ const LoginScreen = () => {
                 {isLogin ? 'New here?' : 'Member?'}
               </Text>
               <TouchableOpacity onPress={() => setIsLogin(!isLogin)} className="ml-2">
-                <Text className="text-black text-xs font-bold tracking-wide border-b border-black">
+                <Text className="text-secondary text-xs font-bold tracking-wide border-b border-secondary">
                   {isLogin ? 'APPLY FOR ACCESS' : 'SIGN IN'}
                 </Text>
               </TouchableOpacity>

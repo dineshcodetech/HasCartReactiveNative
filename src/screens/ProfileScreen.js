@@ -12,16 +12,23 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Icon from '../components/Icon';
 import CustomLoader from '../components/CustomLoader';
+import { API_BASE_URL } from '../services/api';
 
-import { useTheme } from '../context/ThemeContext';
+
+// import { useTheme } from '../context/ThemeContext';
+
 
 const ProfileScreen = () => {
+  // const navigation = useNavigation();
+  const isDark = false; // Forced to light mode
+  const toggleTheme = () => { }; // No-op
+  // const { isDark, toggleTheme } = useTheme();
   const navigation = useNavigation();
-  const { isDark, toggleTheme } = useTheme();
-  // const [isDark, setIsDark] = useState(false); // REMOVED local state
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [agentStats, setAgentStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   // Check auth status when screen is focused
   useFocusEffect(
@@ -40,8 +47,12 @@ const ProfileScreen = () => {
       const userData = await AsyncStorage.getItem('userData');
 
       if (token && userData) {
+        const parsedUser = JSON.parse(userData);
         setIsLoggedIn(true);
-        setUser(JSON.parse(userData));
+        setUser(parsedUser);
+        if (parsedUser.role === 'agent' || parsedUser.role === 'admin') {
+          fetchAgentStats(token);
+        }
       } else {
         setIsLoggedIn(false);
         setUser(null);
@@ -51,6 +62,25 @@ const ProfileScreen = () => {
       setIsLoggedIn(false);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAgentStats = async (token) => {
+    try {
+      setStatsLoading(true);
+      const response = await fetch(`${API_BASE_URL}/api/referral/stats`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setAgentStats(data.data);
+      }
+    } catch (error) {
+      console.error('[Profile] Fetch agent stats error:', error);
+    } finally {
+      setStatsLoading(false);
     }
   };
 
@@ -124,9 +154,9 @@ const ProfileScreen = () => {
         </Text>
         <TouchableOpacity
           onPress={handleLogin}
-          className="w-full bg-black dark:bg-white py-4 rounded-lg items-center"
+          className="w-full bg-primary py-4 rounded-lg items-center"
         >
-          <Text className="text-white dark:text-black font-bold text-base tracking-wide">SIGN IN</Text>
+          <Text className="text-white font-bold text-base tracking-wide uppercase">SIGN IN</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleLogin} className="mt-4">
           <Text className="text-gray-500 text-sm">New here? <Text className="text-black dark:text-white font-bold">Create Account</Text></Text>
@@ -146,8 +176,8 @@ const ProfileScreen = () => {
             <View className="w-24 h-24 bg-gray-200 dark:bg-gray-800 rounded-full items-center justify-center overflow-hidden mb-4 border-2 border-white dark:border-gray-900 shadow-lg">
               <Icon name="person" size={40} color="#999" />
             </View>
-            <View className="absolute bottom-4 right-0 bg-black dark:bg-white w-8 h-8 rounded-full items-center justify-center border-2 border-white dark:border-black">
-              <Icon name="edit" size={14} color={isDark ? '#000' : '#fff'} />
+            <View className="absolute bottom-4 right-0 bg-primary w-8 h-8 rounded-full items-center justify-center border-2 border-white dark:border-black">
+              <Icon name="edit" size={14} color="#fff" />
             </View>
           </View>
 
@@ -167,25 +197,40 @@ const ProfileScreen = () => {
           )}
         </View>
 
+        {/* Agent Dashboard Section */}
+        {(user?.role === 'agent' || user?.role === 'admin') && (
+          <View className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+            <Text className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-4">Agent Dashboard</Text>
+
+            {statsLoading ? (
+              <ActivityIndicator color="#000" size="small" />
+            ) : (
+              <View className="flex-row justify-between mb-4">
+                <StatBox label="Referral Code" value={agentStats?.agent?.referralCode || '...'} />
+                <StatBox label="Referred Users" value={agentStats?.totalReferrals || 0} />
+                <StatBox label="Total Clicks" value={agentStats?.totalClicks || 0} />
+              </View>
+            )}
+
+            <TouchableOpacity
+              className="bg-black py-3 rounded-lg flex-row items-center justify-center"
+              onPress={() => {
+                const code = agentStats?.agent?.referralCode;
+                if (code) {
+                  Alert.alert('Referral Code', `Share your code: ${code}\nLink: https://hascart.club/join?ref=${code}`);
+                }
+              }}
+            >
+              <Icon name="share" size={16} color="#fff" />
+              <Text className="text-white font-bold ml-2 text-xs uppercase tracking-widest">Share Referrals</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Menu Sections */}
         <View className="px-6 pt-6">
 
-          <Text className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-4 mt-2">App Preferences</Text>
-
-          <View className="flex-row items-center py-4 border-b border-gray-50 dark:border-gray-800">
-            <View className="w-10 h-10 rounded-full items-center justify-center mr-4 bg-gray-100 dark:bg-gray-800">
-              <Icon name="brightness-6" size={20} color={isDark ? '#fff' : '#000'} />
-            </View>
-            <Text className="flex-1 text-base font-medium text-black dark:text-white">Dark Mode</Text>
-            <Switch
-              value={isDark}
-              onValueChange={toggleTheme}
-              trackColor={{ false: "#e9e9e9", true: "#fff" }}
-              thumbColor={isDark ? "#000" : "#f4f3f4"}
-            />
-          </View>
-
-          <Text className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-4 mt-8">Support</Text>
+          <Text className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-4 mt-2">Support</Text>
           <MenuItem
             icon="headset-mic"
             label="Concierge Support"

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Dimensions, Animated, Easing } from 'react-native';
 import Icon from './Icon';
-import { useTheme } from '../context/ThemeContext';
+// import { useTheme } from '../context/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -87,7 +87,8 @@ const FloatingItem = ({ icon, delay, duration, startX, isDark }) => {
 };
 
 const CustomLoader = ({ text = "Loading..." }) => {
-    const { isDark } = useTheme();
+    // const { isDark } = useTheme();
+    const isDark = false;
 
     return (
         <View style={[styles.container, isDark && styles.containerDark]}>
@@ -127,8 +128,8 @@ const CustomLoader = ({ text = "Loading..." }) => {
 
                 {/* Main Logo/Text */}
                 <View style={styles.logoContainer}>
-                    <Icon name="shopping-bag" size={50} color={isDark ? '#fff' : '#000'} />
-                    <Text style={[styles.logoText, isDark && styles.logoTextDark]}>HASCART</Text>
+                    <Icon name="shopping-bag" size={50} color={isDark ? '#fff' : '#2B3990'} />
+                    <Text style={[styles.logoText, { color: '#2B3990' }, isDark && styles.logoTextDark]}>HASCART</Text>
                 </View>
 
                 {/* Loading Text */}

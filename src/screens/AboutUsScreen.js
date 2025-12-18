@@ -2,11 +2,12 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, Linking, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from '../components/Icon';
-import { useTheme } from '../context/ThemeContext';
+// import { useTheme } from '../context/ThemeContext';
 
 const AboutUsScreen = () => {
     const navigation = useNavigation();
-    const { isDark } = useTheme();
+    // const { isDark } = useTheme();
+    const isDark = false;
 
     const openLink = (url) => {
         Linking.openURL(url).catch(err => console.error("Couldn't load page", err));
@@ -37,10 +38,14 @@ const AboutUsScreen = () => {
 
             <ScrollView contentContainerStyle={{ padding: 24 }}>
                 <View className="items-center mb-10 mt-4">
-                    <View className="w-24 h-24 bg-black dark:bg-white rounded-2xl items-center justify-center mb-4 shadow-lg">
-                        <Icon name="shopping-bag" size={48} color={isDark ? '#000' : '#fff'} />
+                    <View className="w-32 h-32 items-center justify-center mb-4">
+                        <Image
+                            source={require('../../assets/logo.png')}
+                            style={{ width: '100%', height: '100%' }}
+                            resizeMode="contain"
+                        />
                     </View>
-                    <Text className="text-2xl font-bold text-black dark:text-white mb-2">HasCart Premium</Text>
+                    <Text className="text-2xl font-bold text-primary dark:text-white mb-2">HasCart Premium</Text>
                     <Text className="text-gray-500 dark:text-gray-400 font-medium">Version 1.0.0</Text>
                 </View>
 
