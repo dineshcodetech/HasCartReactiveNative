@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { View, Image, Dimensions, ScrollView, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { getOptimizedImageSource } from '../utils/imageUtils';
 
 const { width } = Dimensions.get('window');
 const BANNER_HEIGHT = 200;
@@ -53,6 +54,9 @@ const BannerCarousel = ({ banners = [] }) => {
         }
     };
 
+    // Use the shared utility function for image optimization
+    // This now uses the backend proxy for reliable Google Drive image loading
+
     return (
         <View style={styles.container}>
             <ScrollView
@@ -74,7 +78,7 @@ const BannerCarousel = ({ banners = [] }) => {
                         style={[styles.slide, isDark && { backgroundColor: '#111' }]}
                     >
                         <Image
-                            source={{ uri: banner.imageUrl }}
+                            source={getOptimizedImageSource(banner.imageUrl, 800)}
                             style={styles.image}
                             resizeMode="cover"
                         />

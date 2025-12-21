@@ -103,11 +103,14 @@ const HomeScreen = ({ navigation }) => {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsRow}>
         {[
           { name: 'For You', icon: 'shopping-bag' },
-          { name: 'Fashion', icon: 'checkroom' },
-          { name: 'Mobiles', icon: 'smartphone' },
-          { name: 'Electronics', icon: 'laptop' },
-          { name: 'Appliances', icon: 'tv' },
-          { name: 'Beauty', icon: 'spa' },
+          ...categories.map(cat => ({
+            name: cat.name,
+            icon: cat.amazonSearchIndex === 'Electronics' ? 'smartphone' :
+              cat.amazonSearchIndex === 'Fashion' ? 'checkroom' :
+                cat.amazonSearchIndex === 'Automotive' ? 'directions-car' :
+                  cat.amazonSearchIndex === 'Appliances' ? 'tv' :
+                    cat.amazonSearchIndex === 'Beauty' ? 'spa' : 'grid-view'
+          }))
         ].map((tab, i) => (
           <TouchableOpacity
             key={i}
@@ -117,7 +120,7 @@ const HomeScreen = ({ navigation }) => {
             <View style={[styles.tabIconContainer, activeTab === tab.name && styles.activeTabIcon]}>
               <Icon name={tab.icon} size={24} color={activeTab === tab.name ? "#2B3990" : "#fff"} />
             </View>
-            <Text style={[styles.tabText, activeTab === tab.name && styles.activeTabText]}>{tab.name}</Text>
+            <Text numberOfLines={1} style={[styles.tabText, activeTab === tab.name && styles.activeTabText]}>{tab.name}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -180,8 +183,8 @@ const HomeScreen = ({ navigation }) => {
                 />
               )}
 
-              {/* Also show a few top categories even in For You? User said "only categories from the list" if for u */}
-              {categories.slice(0, 3).map((category) => (
+              {/* Show all categories */}
+              {categories.map((category) => (
                 <CategoryRow key={category._id} category={category} />
               ))}
             </>

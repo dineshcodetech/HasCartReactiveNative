@@ -15,6 +15,7 @@ import { apiCall } from '../services/api';
 import Icon from '../components/Icon';
 import CustomLoader from '../components/CustomLoader';
 import { IconNames } from '../config/icons';
+import { getOptimizedImageSource } from '../utils/imageUtils';
 
 const { width, height } = Dimensions.get('window');
 const SIDEBAR_WIDTH = width * 0.25; // 25% for sidebar
@@ -63,15 +64,39 @@ const CategoriesScreen = () => {
     const fetchProducts = async (category) => {
         try {
             setLoadingProducts(true);
-            const keyword = category.searchQuery || category.name || 'Best Sellers';
-            const endpoint = `/api/products/category/${category.amazonSearchIndex || 'All'}?keywords=${encodeURIComponent(keyword)}&itemCount=20`;
-            const response = await apiCall(endpoint);
+            let fetchedItems = [];
 
-            if (response.ok && response.data.data?.SearchResult?.Items) {
-                setProducts(response.data.data.SearchResult.Items);
-            } else {
-                setProducts([]);
+            // 1. Check for curated products (selectedProducts) first
+            if (category.selectedProducts && category.selectedProducts.length > 0) {
+                const curatedResponse = await apiCall('/api/products/items', {
+                    method: 'POST',
+                    body: JSON.stringify({ itemIds: category.selectedProducts.slice(0, 20) })
+                });
+
+                if (curatedResponse.ok && curatedResponse.data?.data?.ItemsResult?.Items) {
+                    fetchedItems = curatedResponse.data.data.ItemsResult.Items;
+                }
             }
+
+            // 2. If we need more products, fetch via search
+            if (fetchedItems.length < 12) {
+                const keyword = category.searchQuery ||
+                    (category.searchQueries && category.searchQueries.length > 0 ? category.searchQueries[0] : category.name) ||
+                    'Best Sellers';
+
+                const endpoint = `/api/products/category/${category.amazonSearchIndex || 'All'}?keywords=${encodeURIComponent(keyword)}&itemCount=${20 - fetchedItems.length}`;
+                const searchResponse = await apiCall(endpoint);
+
+                if (searchResponse.ok && searchResponse.data.data?.SearchResult?.Items) {
+                    const searchItems = searchResponse.data.data.SearchResult.Items;
+                    // Filter duplicates
+                    const existingAsins = new Set(fetchedItems.map(p => p.ASIN));
+                    const newItems = searchItems.filter(p => !existingAsins.has(p.ASIN));
+                    fetchedItems = [...fetchedItems, ...newItems];
+                }
+            }
+
+            setProducts(fetchedItems);
         } catch (error) {
             console.error('Failed to fetch products:', error);
             setProducts([]);
@@ -153,12 +178,14 @@ const CategoriesScreen = () => {
     };
 
     const renderProductItem = ({ item }) => {
-        const validImage =
+        const rawImageUrl =
             item.Images?.Primary?.Large?.URL ||
             item.Images?.Primary?.Medium?.URL ||
             item.LargeImage?.URL ||
             'https://via.placeholder.com/150';
 
+        // Get optimized source (handles Google Drive URLs)
+        const imageSource = getOptimizedImageSource(rawImageUrl, 300);
         const title = item.ItemInfo?.Title?.DisplayValue || item.Title || 'Product';
 
         return (
@@ -167,7 +194,7 @@ const CategoriesScreen = () => {
                 onPress={() => navigation.navigate('ProductDetail', { product: item, asin: item.ASIN })}
             >
                 <View style={[styles.circularImageContainer, isDark && { backgroundColor: '#333', borderColor: '#444' }]}>
-                    <Image source={{ uri: validImage }} style={styles.circularImage} resizeMode="cover" />
+                    <Image source={imageSource} style={styles.circularImage} resizeMode="cover" />
                 </View>
                 <Text numberOfLines={2} style={[styles.circularProductTitle, isDark && { color: '#eee' }]}>{title}</Text>
             </TouchableOpacity>

@@ -4,21 +4,25 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiCall, WEB_BASE_URL } from '../services/api';
 import Icon from './Icon';
+import { getOptimizedImageSource } from '../utils/imageUtils';
 
 const ProductCard = ({ product, onPress, onShare, isDark, isAgent }) => {
     // Extract image URL safely
-    const validImage =
+    const rawImageUrl =
         product.Images?.Primary?.Large?.URL ||
         product.Images?.Primary?.Medium?.URL ||
         product.LargeImage?.URL ||
         product.MediumImage?.URL ||
         'https://via.placeholder.com/150';
+    
+    // Get optimized source (handles Google Drive URLs)
+    const validImageSource = getOptimizedImageSource(rawImageUrl, 400);
 
     return (
         <TouchableOpacity style={[styles.card, isDark && { backgroundColor: '#111', borderColor: '#333' }]} onPress={onPress} activeOpacity={0.7}>
             <View style={styles.imageContainer}>
                 <Image
-                    source={{ uri: validImage }}
+                    source={validImageSource}
                     style={[styles.image, isDark && { backgroundColor: '#222', borderRadius: 8 }]}
                     resizeMode="contain"
                 />

@@ -16,6 +16,7 @@ import { apiCall, WEB_BASE_URL } from '../services/api';
 import Icon from '../components/Icon';
 import CustomLoader from '../components/CustomLoader';
 import { styled } from 'nativewind';
+import { getOptimizedImageSource } from '../utils/imageUtils';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48 - 16) / 2; // (Screen - Padding - Gap) / 2
@@ -242,7 +243,9 @@ const ProductsScreen = ({ route }) => {
   };
 
   const renderProduct = ({ item }) => {
-    const imageUrl = item.Images?.Primary?.Large?.URL || item.Images?.Primary?.URL;
+    const rawImageUrl = item.Images?.Primary?.Large?.URL || item.Images?.Primary?.URL;
+    // Get optimized source (handles Google Drive URLs)
+    const imageSource = rawImageUrl ? getOptimizedImageSource(rawImageUrl, 400) : null;
     const title = item.ItemInfo?.Title?.DisplayValue || item.Title || 'Product';
     const priceObj = item.Offers?.Listings?.[0]?.Price;
     const formatPrice = (priceObj) => {
@@ -269,8 +272,8 @@ const ProductsScreen = ({ route }) => {
         <View className="flex-row">
           {/* Left: Image */}
           <View className="w-1/3 aspect-square bg-white rounded-lg p-2 items-center justify-center relative">
-            {imageUrl ? (
-              <Image source={{ uri: imageUrl }} className="w-full h-full" resizeMode="contain" />
+            {imageSource ? (
+              <Image source={imageSource} className="w-full h-full" resizeMode="contain" />
             ) : (
               <Icon name="image" size={32} color="#eee" />
             )}

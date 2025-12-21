@@ -20,6 +20,7 @@ import { apiCall, trackProductClick, WEB_BASE_URL } from '../services/api';
 import Icon from '../components/Icon';
 import CustomLoader from '../components/CustomLoader';
 import { IconNames } from '../config/icons';
+import { getOptimizedImageSource } from '../utils/imageUtils';
 // import { useTheme } from '../context/ThemeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -276,7 +277,7 @@ const ProductDetailScreen = () => {
           >
             {allImages.map((url, index) => (
               <View key={index} style={{ width: SCREEN_WIDTH, alignItems: 'center', padding: 20 }}>
-                <Image source={{ uri: url }} style={styles.productImage} resizeMode="contain" />
+                <Image source={getOptimizedImageSource(url, 800)} style={styles.productImage} resizeMode="contain" />
               </View>
             ))}
           </ScrollView>
