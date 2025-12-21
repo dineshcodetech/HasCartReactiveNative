@@ -14,6 +14,9 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import ProductDetailScreen from './src/screens/ProductDetailScreen';
 import AboutUsScreen from './src/screens/AboutUsScreen';
 import SupportScreen from './src/screens/SupportScreen';
+import ReferralsScreen from './src/screens/ReferralsScreen';
+import AgentClicksScreen from './src/screens/AgentClicksScreen';
+import WithdrawalScreen from './src/screens/WithdrawalScreen';
 import Icon from './src/components/Icon';
 import { IconNames } from './src/config/icons';
 // import { ThemeProvider } from './src/context/ThemeContext';
@@ -201,6 +204,21 @@ export default function App() {
         <Stack.Screen
           name="Support"
           component={SupportScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Referrals"
+          component={ReferralsScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="AgentClicks"
+          component={AgentClicksScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Withdrawal"
+          component={WithdrawalScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

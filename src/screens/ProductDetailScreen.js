@@ -10,6 +10,8 @@ import {
   Dimensions,
   Linking,
   StatusBar,
+  Alert,
+  Clipboard,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -76,6 +78,7 @@ const ProductDetailScreen = () => {
           'ItemInfo.TechnicalInfo',
           'ItemInfo.ProductInfo',
           'ItemInfo.ByLineInfo',
+          'ItemInfo.Classifications',
           'Offers.Listings.Price',
           'Offers.Listings.Condition',
           'Offers.Listings.DeliveryInfo.IsPrimeEligible',
@@ -151,8 +154,10 @@ const ProductDetailScreen = () => {
 
     // Track click before opening URL
     try {
-      const token = await AsyncStorage.getItem('userToken');
-      if (token && productDetail) {
+      const token = await AsyncStorage.getItem('authToken');
+      console.log("here", productDetail);
+
+      if (productDetail) {
         const productData = {
           asin: asin || productDetail.ASIN,
           productName: getProductTitle(productDetail),
@@ -161,10 +166,12 @@ const ProductDetailScreen = () => {
           imageUrl: allImages[0] || '',
           productUrl: url,
         };
-        trackProductClick(productData, token);
+        console.log('[ProductDetail] Tracking click with token:', token ? 'YES' : 'NO');
+        await trackProductClick(productData, token);
+
       }
     } catch (trackErr) {
-      console.log('Click tracking failed silently:', trackErr);
+      console.log('Click tracking failed:', trackErr);
     }
 
     Linking.openURL(url).catch((err) => console.error('[ProductDetail] Error opening URL:', err));
@@ -174,8 +181,46 @@ const ProductDetailScreen = () => {
     try {
       const title = getProductTitle(productDetail);
       const referralCode = user?.referralCode || '';
-      const shareUrl = `${WEB_BASE_URL}/product/${asin || productDetail?.ASIN}${referralCode ? `?ref=${referralCode}` : ''}`;
-      await Share.share({ message: `${title}\n\nCheck this out on HasCart: ${shareUrl}` });
+      const agentId = user?._id || ''; // Get the agent's ID
+
+      // Construct URL with both parameters for redundancy
+      let shareUrl = `${WEB_BASE_URL}/product/${asin || productDetail?.ASIN}`;
+      const params = [];
+      if (referralCode) params.push(`ref=${referralCode}`);
+      if (agentId) params.push(`agentId=${agentId}`); // Redundant agent ID
+
+      if (params.length > 0) {
+        shareUrl += `?${params.join('&')}`;
+      }
+
+      const message = `${title}\n\nCheck this out on HasCart: ${shareUrl}`;
+
+      Alert.alert(
+        'Share Product',
+        'Share this product (Sales will be attributed to you).',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Copy Link',
+            onPress: () => {
+              Clipboard.setString(shareUrl);
+              Alert.alert('Copied!', 'Affiliate link copied to clipboard.');
+            }
+          },
+          {
+            text: 'Share',
+            onPress: async () => {
+              try {
+                await Share.share({
+                  message,
+                  url: shareUrl, // iOS
+                  title: 'HasCart Product'
+                });
+              } catch (e) { console.error('Share error:', e); }
+            }
+          }
+        ]
+      );
     } catch (error) { console.error('Error sharing:', error); }
   };
 

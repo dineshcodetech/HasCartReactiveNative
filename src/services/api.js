@@ -30,7 +30,8 @@ console.log('Platform:', Platform.OS);
 // Web Base URL for sharing links (e.g. https://hascart.club)
 // You should add WEB_APP_URL to your .env file
 import { WEB_APP_URL } from '@env';
-export const WEB_BASE_URL = WEB_APP_URL || 'https://hascart.club';
+const isDev = !PRODUCTION_API_URL || PRODUCTION_API_URL.includes('localhost');
+export const WEB_BASE_URL = WEB_APP_URL || (isDev ? 'http://localhost:5173' : 'https://hascart.club');
 
 export { API_BASE_URL };
 
@@ -45,27 +46,40 @@ export const apiCall = async (endpoint, options = {}) => {
     // Remove headers from options to avoid double spread
     const { headers: _, ...restOptions } = options;
 
-    console.log('[API] Request:', endpoint, restOptions.method || 'GET');
+    const fullUrl = `${API_BASE_URL}${endpoint}`;
+    console.log('[API] Request:', fullUrl, restOptions.method || 'GET');
+    console.log('[API] Headers:', headers);
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(fullUrl, {
       ...restOptions,
       headers,
     });
 
+    console.log('[API] Response status:', response.status, response.statusText);
+
     const data = await response.json();
+    console.log('[API] Response data:', data);
+    
     return { data, status: response.status, ok: response.ok };
   } catch (error) {
     console.error('API Error:', error);
+    console.error('API Error details:', {
+      message: error.message,
+      stack: error.stack,
+    });
     throw error;
   }
 };
 
 export const trackProductClick = async (productData, token) => {
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
   return apiCall('/api/analytics/track-click', {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers,
     body: JSON.stringify(productData),
   });
 };

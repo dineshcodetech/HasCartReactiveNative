@@ -26,7 +26,7 @@ const SupportScreen = () => {
     };
 
     const handleCall = () => {
-        Linking.openURL('tel:+1234567890');
+        Linking.openURL('tel:+919966141950');
     };
 
     const ContactOption = ({ icon, label, value, onPress, isPrimary = false }) => (
@@ -85,7 +85,7 @@ const SupportScreen = () => {
                     <ContactOption
                         icon="phone"
                         label="Call Us"
-                        value="+1 (234) 567-890"
+                        value="+1 (996) 614-1950"
                         onPress={handleCall}
                     />
                 </View>

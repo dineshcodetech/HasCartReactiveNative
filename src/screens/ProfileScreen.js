@@ -7,12 +7,14 @@ import {
   Switch,
   ActivityIndicator,
   Alert,
+  Clipboard,
+  Share,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Icon from '../components/Icon';
 import CustomLoader from '../components/CustomLoader';
-import { API_BASE_URL } from '../services/api';
+import { API_BASE_URL, WEB_BASE_URL } from '../services/api';
 
 
 // import { useTheme } from '../context/ThemeContext';
@@ -84,6 +86,11 @@ const ProfileScreen = () => {
     }
   };
 
+  const copyToClipboard = (text, label) => {
+    Clipboard.setString(text);
+    Alert.alert('Copied!', `${label} has been copied to your clipboard.`);
+  };
+
   const handleLogout = async () => {
     Alert.alert(
       'Sign Out',
@@ -115,11 +122,15 @@ const ProfileScreen = () => {
     navigation.navigate('Login');
   };
 
-  const StatBox = ({ label, value }) => (
-    <View className="items-center justify-center bg-gray-50 p-4 rounded-xl w-[30%]">
+  const StatBox = ({ label, value, onPress }) => (
+    <TouchableOpacity
+      onPress={() => onPress && onPress(value)}
+      disabled={!onPress}
+      className="items-center justify-center bg-gray-50 p-4 rounded-xl w-[30%] border border-gray-100"
+    >
       <Text className="text-xl font-bold text-black mb-1">{value}</Text>
       <Text className="text-[10px] text-gray-400 uppercase tracking-wider">{label}</Text>
-    </View>
+    </TouchableOpacity>
   );
 
   const MenuItem = ({ icon, label, onPress, showArrow = true, isDestructive = false }) => (
@@ -197,6 +208,34 @@ const ProfileScreen = () => {
           )}
         </View>
 
+        {/* Wallet Section for Agents */}
+        {(user?.role === 'agent' || user?.role === 'admin') && (
+          <View className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+            <View className="bg-white dark:bg-gray-900 rounded-2xl p-6 mb-4 border border-gray-100 dark:border-gray-800 shadow-sm">
+              <View className="flex-row items-center justify-between mb-4">
+                <View className="flex-row items-center">
+                  <View className="w-10 h-10 bg-green-50 dark:bg-green-900/20 rounded-xl items-center justify-center mr-3">
+                    <Icon name="account-balance-wallet" size={20} color="#10b981" />
+                  </View>
+                  <View>
+                    <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Available Balance</Text>
+                    <Text className="text-3xl font-black text-black dark:text-white tracking-tight">
+                      ₹{user?.balance?.toFixed(2) || agentStats?.agent?.balance?.toFixed(2) || '0.00'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+              <TouchableOpacity
+                className="bg-black dark:bg-white py-3 rounded-xl flex-row items-center justify-center"
+                onPress={() => navigation.navigate('Withdrawal')}
+              >
+                <Icon name="account-balance-wallet" size={18} color="#fff" />
+                <Text className="text-white dark:text-black font-bold ml-2 text-sm uppercase tracking-widest">Withdraw</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         {/* Agent Dashboard Section */}
         {(user?.role === 'agent' || user?.role === 'admin') && (
           <View className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
@@ -206,24 +245,86 @@ const ProfileScreen = () => {
               <ActivityIndicator color="#000" size="small" />
             ) : (
               <View className="flex-row justify-between mb-4">
-                <StatBox label="Referral Code" value={agentStats?.agent?.referralCode || '...'} />
-                <StatBox label="Referred Users" value={agentStats?.totalReferrals || 0} />
-                <StatBox label="Total Clicks" value={agentStats?.totalClicks || 0} />
+                <StatBox
+                  label="Referral Code"
+                  value={agentStats?.agent?.referralCode || '...'}
+                  onPress={(val) => copyToClipboard(val, 'Referral Code')}
+                />
+                <StatBox label="Referred" value={agentStats?.totalReferrals || 0} />
+                <StatBox label="Earnings" value={`₹${agentStats?.agent?.balance?.toFixed(0) || 0}`} />
               </View>
             )}
 
-            <TouchableOpacity
-              className="bg-black py-3 rounded-lg flex-row items-center justify-center"
-              onPress={() => {
-                const code = agentStats?.agent?.referralCode;
-                if (code) {
-                  Alert.alert('Referral Code', `Share your code: ${code}\nLink: https://hascart.club/join?ref=${code}`);
-                }
-              }}
-            >
-              <Icon name="share" size={16} color="#fff" />
-              <Text className="text-white font-bold ml-2 text-xs uppercase tracking-widest">Share Referrals</Text>
-            </TouchableOpacity>
+            <MenuItem
+              icon="people"
+              label="My Referrals"
+              onPress={() => navigation.navigate('Referrals')}
+            />
+
+            <MenuItem
+              icon="trending-up"
+              label="Product Clicks & Earnings"
+              onPress={() => navigation.navigate('AgentClicks')}
+            />
+
+            <MenuItem
+              icon="account-balance-wallet"
+              label="Withdraw Earnings"
+              onPress={() => navigation.navigate('Withdrawal')}
+            />
+
+            <View className="flex-row gap-3 mt-4">
+              <TouchableOpacity
+                className="flex-1 bg-black py-3 rounded-lg flex-row items-center justify-center"
+                onPress={async () => {
+                  const code = agentStats?.agent?.referralCode;
+                  if (code) {
+                    const link = `${WEB_BASE_URL}/join?ref=${code}`;
+                    const shareMsg = `Join HasCart and start earning! Use my code ${code} or click here: ${link}`;
+
+                    Alert.alert(
+                      'Share Referral',
+                      'Share your code or link with your network.',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Copy Link',
+                          onPress: () => copyToClipboard(link, 'Referral Link')
+                        },
+                        {
+                          text: 'Native Share',
+                          onPress: async () => {
+                            try {
+                              await Share.share({
+                                message: shareMsg,
+                                url: link, // iOS
+                                title: 'HasCart Referral'
+                              });
+                            } catch (e) { console.log(e); }
+                          }
+                        }
+                      ]
+                    );
+                  }
+                }}
+              >
+                <Icon name="share" size={16} color="#fff" />
+                <Text className="text-white font-bold ml-2 text-xs uppercase tracking-widest">Share</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className="flex-1 bg-gray-100 py-3 rounded-lg flex-row items-center justify-center"
+                onPress={() => {
+                  const code = agentStats?.agent?.referralCode;
+                  if (code) {
+                    copyToClipboard(code, 'Referral Code');
+                  }
+                }}
+              >
+                <Icon name="content-copy" size={16} color="#000" />
+                <Text className="text-black font-bold ml-2 text-xs uppercase tracking-widest">Copy Code</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 

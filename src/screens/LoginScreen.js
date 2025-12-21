@@ -31,6 +31,8 @@ const LoginScreen = () => {
     confirmPassword: '',
     referralCode: '',
   });
+  const [referringAgent, setReferringAgent] = useState(null);
+  const [isValidatingReferral, setIsValidatingReferral] = useState(false);
 
   const fadeAnim = new Animated.Value(0);
   const slideAnim = new Animated.Value(20);
@@ -50,10 +52,51 @@ const LoginScreen = () => {
     ]).start();
   }, []);
 
+  // Real-time Referral Code Validation
+  useEffect(() => {
+    const validateCode = async () => {
+      const codeToValidate = formData.referralCode ? formData.referralCode.trim() : '';
+      if (codeToValidate && codeToValidate.length >= 3) {
+        setIsValidatingReferral(true);
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/referral/validate/${codeToValidate}`);
+          const data = await response.json();
+          if (data.success && data.data.valid) {
+            setReferringAgent(data.data.agentName);
+          } else {
+            setReferringAgent(null);
+          }
+        } catch (error) {
+          console.error('Referral validation error:', error);
+          setReferringAgent(null);
+        } finally {
+          setIsValidatingReferral(false);
+        }
+      } else {
+        setReferringAgent(null);
+        setIsValidatingReferral(false);
+      }
+    };
+
+    if (!isLogin && formData.referralCode) {
+      const timeoutId = setTimeout(validateCode, 600);
+      return () => clearTimeout(timeoutId);
+    } else {
+      setReferringAgent(null);
+    }
+  }, [formData.referralCode, isLogin]);
+
   const handleInputChange = (field, value) => {
+    let finalValue = value;
+
+    // Numeric only for mobile
+    if (field === 'mobile') {
+      finalValue = value.replace(/[^0-9]/g, '');
+    }
+
     setFormData(prev => ({
       ...prev,
-      [field]: value,
+      [field]: finalValue,
     }));
   };
 
@@ -70,8 +113,12 @@ const LoginScreen = () => {
     }
 
     if (!isLogin) {
-      if (!formData.name) {
-        Alert.alert('Incomplete', 'Please tell us your name.');
+      if (!formData.name || formData.name.trim().length < 2) {
+        Alert.alert('Invalid Name', 'Please enter a valid name (at least 2 characters).');
+        return false;
+      }
+      if (!formData.mobile || formData.mobile.length !== 10) {
+        Alert.alert('Invalid Mobile', 'Mobile number must be exactly 10 digits.');
         return false;
       }
       if (formData.password !== formData.confirmPassword) {
@@ -96,7 +143,7 @@ const LoginScreen = () => {
           email: formData.email,
           password: formData.password,
           mobile: formData.mobile,
-          referralCode: formData.referralCode
+          referralCode: formData.referralCode ? formData.referralCode.trim() : ''
         };
 
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -169,6 +216,7 @@ const LoginScreen = () => {
                   className="w-full border-b border-gray-200 py-3 text-base text-black font-medium tracking-wide"
                   value={formData.name}
                   onChangeText={value => handleInputChange('name', value)}
+                  autoCapitalize="words"
                 />
               </View>
             )}
@@ -176,12 +224,13 @@ const LoginScreen = () => {
             {!isLogin && (
               <View>
                 <TextInput
-                  placeholder="Mobile Number"
+                  placeholder="Mobile Number (10 Digits)"
                   placeholderTextColor="#9ca3af"
                   className="w-full border-b border-gray-200 py-3 text-base text-black font-medium tracking-wide"
                   value={formData.mobile}
                   onChangeText={value => handleInputChange('mobile', value)}
-                  keyboardType="phone-pad"
+                  keyboardType="number-pad"
+                  maxLength={10}
                 />
               </View>
             )}
@@ -195,6 +244,17 @@ const LoginScreen = () => {
                 onChangeText={value => handleInputChange('email', value)}
                 autoCapitalize="none"
                 keyboardType="email-address"
+              />
+            </View>
+
+            <View>
+              <TextInput
+                placeholder="PASSWORD"
+                placeholderTextColor="#9ca3af"
+                className="w-full border-b border-gray-200 py-3 text-base text-black font-medium tracking-wide"
+                value={formData.password}
+                onChangeText={value => handleInputChange('password', value)}
+                secureTextEntry
               />
             </View>
 
@@ -216,11 +276,24 @@ const LoginScreen = () => {
                 <TextInput
                   placeholder="REFERRAL CODE (OPTIONAL)"
                   placeholderTextColor="#9ca3af"
-                  className="w-full border-b border-gray-200 py-3 text-base text-black font-medium tracking-wide uppercase"
+                  className="w-full border-b border-gray-200 py-3 text-base text-black font-medium tracking-wide"
                   value={formData.referralCode}
                   onChangeText={value => handleInputChange('referralCode', value.toUpperCase())}
-                  autoCapitalize="characters"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  spellCheck={false}
                 />
+                {isValidatingReferral && (
+                  <Text className="text-[10px] text-gray-400 mt-1 italic">Validating code...</Text>
+                )}
+                {referringAgent && (
+                  <Text className="text-[10px] text-green-600 mt-1 font-bold">
+                    ✓ Referred by {referringAgent}
+                  </Text>
+                )}
+                {!isValidatingReferral && formData.referralCode.length >= 3 && !referringAgent && (
+                  <Text className="text-[10px] text-red-400 mt-1">Invalid referral code</Text>
+                )}
               </View>
             )}
 
@@ -244,7 +317,7 @@ const LoginScreen = () => {
               </Text>
               <TouchableOpacity onPress={() => setIsLogin(!isLogin)} className="ml-2">
                 <Text className="text-secondary text-xs font-bold tracking-wide border-b border-secondary">
-                  {isLogin ? 'APPLY FOR ACCESS' : 'SIGN IN'}
+                  {isLogin ? 'REGISTER' : 'SIGN IN'}
                 </Text>
               </TouchableOpacity>
             </View>
