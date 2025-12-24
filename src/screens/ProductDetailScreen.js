@@ -205,7 +205,7 @@ const ProductDetailScreen = () => {
             text: 'Copy Link',
             onPress: () => {
               Clipboard.setString(shareUrl);
-              Alert.alert('Copied!', 'Affiliate link copied to clipboard.');
+              Alert.alert('Copied!', 'link copied to clipboard.');
             }
           },
           {

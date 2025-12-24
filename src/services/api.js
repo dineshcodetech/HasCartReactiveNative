@@ -4,10 +4,13 @@ import { Platform } from 'react-native';
 
 import { PRODUCTION_API_URL, ANDROID_DEVICE_IP, IOS_DEVICE_IP, API_PORT } from '@env';
 
+const PRODUCTION_API_URL_INTERNAL = 'https://api.hascart.in';
 let API_BASE_URL;
 
 if (PRODUCTION_API_URL && !PRODUCTION_API_URL.includes('localhost')) {
   API_BASE_URL = PRODUCTION_API_URL;
+} else if (PRODUCTION_API_URL_INTERNAL) {
+  API_BASE_URL = PRODUCTION_API_URL_INTERNAL;
 } else {
   if (Platform.OS === 'android') {
     const ip = ANDROID_DEVICE_IP || '10.0.2.2';
@@ -22,6 +25,9 @@ if (PRODUCTION_API_URL && !PRODUCTION_API_URL.includes('localhost')) {
 
 // Sanitize URL to remove accidental double colons if PRODUCTION_API_URL had issues
 API_BASE_URL = API_BASE_URL.replace(/([^:]\/)\/+/g, "$1").replace('::', ':');
+if (!API_BASE_URL.endsWith('/')) {
+  // We keep it without trailing slash as endpoints start with /
+}
 
 
 console.log('API_BASE_URL configured as:', API_BASE_URL);
@@ -59,7 +65,7 @@ export const apiCall = async (endpoint, options = {}) => {
 
     const data = await response.json();
     console.log('[API] Response data:', data);
-    
+
     return { data, status: response.status, ok: response.ok };
   } catch (error) {
     console.error('API Error:', error);

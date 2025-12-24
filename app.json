@@ -1,9 +1,9 @@
 {
-  "name": "HasCartReactiveNative",
-  "displayName": "HasCartReactiveNative",
+  "name": "HasCart",
+  "displayName": "HasCart",
   "expo": {
-    "name": "HasCartReactiveNative",
-    "slug": "HasCartReactiveNative",
+    "name": "HasCart",
+    "slug": "HasCart",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

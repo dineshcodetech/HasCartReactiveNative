@@ -70,7 +70,7 @@ cd ..
 ```
 
 #### Configure in Xcode:
-1. Open `ios/hascartreactivenative.xcworkspace` in Xcode
+1. Open `ios/HasCart.xcworkspace` in Xcode
 2. Select your physical iOS device from the device dropdown
 3. Go to Signing & Capabilities
 4. Select your development team
@@ -133,7 +133,7 @@ adb devices
 ## Project Structure
 
 ```
-HasCartReactiveNative/
+HasCart/
 ├── src/
 │   └── screens/
 │       ├── HomeScreen.js       # Home tab with categories
