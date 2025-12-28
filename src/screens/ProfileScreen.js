@@ -9,6 +9,7 @@ import {
   Alert,
   Clipboard,
   Share,
+  Linking,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -341,6 +342,18 @@ const ProfileScreen = () => {
             icon="info"
             label="About Us"
             onPress={() => navigation.navigate('AboutUs')}
+          />
+
+          <Text className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-4 mt-6">Community</Text>
+          <MenuItem
+            icon="chat" // using a chat icon for whatsapp representation if specific brand icons aren't available in the Icon set
+            label="Join WhatsApp Channel"
+            onPress={() => Linking.openURL('https://whatsapp.com/channel/0029Vb6YJB3Dp2QCuvIWrI0p')}
+          />
+          <MenuItem
+            icon="camera-alt" // camera for instagram
+            label="Follow on Instagram"
+            onPress={() => Linking.openURL('https://www.instagram.com/hasde_als?igsh=cnE1OWUzeDB2aGF2')}
           />
           <MenuItem
             icon="logout"

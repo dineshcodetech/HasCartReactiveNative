@@ -1,43 +1,16 @@
 
 
 import { Platform } from 'react-native';
+import { API_BASE_URL as ENV_API_URL, WEB_APP_URL } from '@env';
 
-import { PRODUCTION_API_URL, ANDROID_DEVICE_IP, IOS_DEVICE_IP, API_PORT } from '@env';
-
-const PRODUCTION_API_URL_INTERNAL = 'https://api.hascart.in';
-let API_BASE_URL;
-
-if (PRODUCTION_API_URL && !PRODUCTION_API_URL.includes('localhost')) {
-  API_BASE_URL = PRODUCTION_API_URL;
-} else if (PRODUCTION_API_URL_INTERNAL) {
-  API_BASE_URL = PRODUCTION_API_URL_INTERNAL;
-} else {
-  if (Platform.OS === 'android') {
-    const ip = ANDROID_DEVICE_IP || '10.0.2.2';
-    const port = API_PORT ? API_PORT.replace(':', '') : '3001';
-    API_BASE_URL = `http://${ip}:${port}`;
-  } else {
-    const ip = IOS_DEVICE_IP || 'localhost';
-    const port = API_PORT ? API_PORT.replace(':', '') : '3001';
-    API_BASE_URL = `http://${ip}:${port}`;
-  }
-}
-
-// Sanitize URL to remove accidental double colons if PRODUCTION_API_URL had issues
-API_BASE_URL = API_BASE_URL.replace(/([^:]\/)\/+/g, "$1").replace('::', ':');
-if (!API_BASE_URL.endsWith('/')) {
-  // We keep it without trailing slash as endpoints start with /
-}
-
+const API_BASE_URL = ENV_API_URL || 'https://api.hascart.in';
 
 console.log('API_BASE_URL configured as:', API_BASE_URL);
 console.log('Platform:', Platform.OS);
 
 // Web Base URL for sharing links (e.g. https://hascart.club)
-// You should add WEB_APP_URL to your .env file
-import { WEB_APP_URL } from '@env';
-const isDev = !PRODUCTION_API_URL || PRODUCTION_API_URL.includes('localhost');
-export const WEB_BASE_URL = WEB_APP_URL || (isDev ? 'http://localhost:5173' : 'https://hascart.club');
+const isDev = __DEV__;
+export const WEB_BASE_URL = WEB_APP_URL || 'https://hascart.in';
 
 export { API_BASE_URL };
 
@@ -53,6 +26,8 @@ export const apiCall = async (endpoint, options = {}) => {
     const { headers: _, ...restOptions } = options;
 
     const fullUrl = `${API_BASE_URL}${endpoint}`;
+    console.log(fullUrl, "herere");
+
     console.log('[API] Request:', fullUrl, restOptions.method || 'GET');
     console.log('[API] Headers:', headers);
 
