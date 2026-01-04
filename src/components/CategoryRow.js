@@ -26,12 +26,22 @@ const ProductCard = ({ product, onPress, onShare, isDark, isAgent }) => {
                     style={[styles.image, isDark && { backgroundColor: '#222', borderRadius: 8 }]}
                     resizeMode="contain"
                 />
+                {isAgent && (
+                    <TouchableOpacity
+                        style={styles.cardShareBtn}
+                        onPress={(e) => {
+                            e.stopPropagation();
+                            onShare(product);
+                        }}
+                    >
+                        <Icon name="share" size={16} color="#2B3990" />
+                    </TouchableOpacity>
+                )}
             </View>
             <View style={styles.info}>
                 <Text numberOfLines={2} style={[styles.title, isDark && { color: '#fff' }]}>
                     {product.ItemInfo?.Title?.DisplayValue || 'Unknown Product'}
                 </Text>
-                {/* Price and Add button removed for cleaner look as requested */}
             </View>
         </TouchableOpacity>
     );
@@ -288,6 +298,24 @@ const styles = StyleSheet.create({
         height: 30,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    cardShareBtn: {
+        position: 'absolute',
+        bottom: -5,
+        right: -5,
+        backgroundColor: '#fff',
+        borderRadius: 15,
+        width: 28,
+        height: 28,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 2,
+        borderWidth: 1,
+        borderColor: '#f0f0f0',
     },
     image: {
         width: '100%',

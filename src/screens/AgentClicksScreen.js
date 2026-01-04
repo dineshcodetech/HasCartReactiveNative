@@ -25,9 +25,14 @@ const AgentClicksScreen = () => {
     const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
 
     // Filter states
+    const getTodayDate = () => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+
     const [filters, setFilters] = useState({
-        startDate: '',
-        endDate: '',
+        startDate: getTodayDate(),
+        endDate: getTodayDate(),
         status: '',
         category: ''
     });

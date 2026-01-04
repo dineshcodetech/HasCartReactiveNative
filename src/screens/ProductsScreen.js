@@ -287,7 +287,7 @@ const ProductsScreen = ({ route }) => {
 
     return (
       <TouchableOpacity
-        className="mb-4 bg-white dark:bg-gray-900 rounded-xl p-3 shadow-sm border border-gray-100 dark:border-gray-800"
+        className="mb-4 bg-white dark:bg-gray-900 rounded-xl p-3 shadow-sm border border-gray-100 dark:border-gray-800 relative"
         onPress={() => navigation.navigate('ProductDetail', {
           asin: item.ASIN,
           product: item,
@@ -327,20 +327,6 @@ const ProductsScreen = ({ route }) => {
 
             <Text className="text-lg font-bold text-gray-900 dark:text-gray-100">{price}</Text>
           </View>
-
-          {/* Wishlist/Share Icon absolute top right */}
-          <TouchableOpacity
-            className="absolute top-0 right-0 p-1"
-            onPress={(e) => {
-              if (user?.role === 'agent' || user?.role === 'admin') {
-                handleShare(item);
-              }
-            }}
-          >
-            {(user?.role === 'agent' || user?.role === 'admin') ? (
-              <Icon name="share" size={20} color="#2B3990" />
-            ) : null}
-          </TouchableOpacity>
         </View>
 
         {/* Bottom: Spec Chips */}
@@ -352,6 +338,19 @@ const ProductsScreen = ({ route }) => {
               </View>
             ))}
           </View>
+        )}
+
+        {/* Share Icon - Bottom Right */}
+        {(user?.role === 'agent' || user?.role === 'admin') && (
+          <TouchableOpacity
+            className="absolute bottom-2 right-2 bg-white dark:bg-gray-800 rounded-full p-2 shadow-sm border border-gray-100 dark:border-gray-700"
+            onPress={(e) => {
+              e.stopPropagation();
+              handleShare(item);
+            }}
+          >
+            <Icon name="share" size={18} color="#2B3990" />
+          </TouchableOpacity>
         )}
       </TouchableOpacity>
     );

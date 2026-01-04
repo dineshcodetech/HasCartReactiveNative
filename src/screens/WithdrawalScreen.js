@@ -35,9 +35,14 @@ const WithdrawalScreen = () => {
     holderName: '',
   });
 
+  const getTodayDate = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
   const [filters, setFilters] = useState({
-    startDate: '', // YYYY-MM-DD
-    endDate: '',   // YYYY-MM-DD
+    startDate: getTodayDate(), // YYYY-MM-DD
+    endDate: getTodayDate(),   // YYYY-MM-DD
     status: '',    // 'pending', 'approved', 'rejected'
   });
   const [showFilters, setShowFilters] = useState(false);

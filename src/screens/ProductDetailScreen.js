@@ -21,6 +21,7 @@ import Icon from '../components/Icon';
 import CustomLoader from '../components/CustomLoader';
 import { IconNames } from '../config/icons';
 import { getOptimizedImageSource } from '../utils/imageUtils';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // import { useTheme } from '../context/ThemeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -38,6 +39,7 @@ const ProductDetailScreen = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showAllFeatures, setShowAllFeatures] = useState(false);
   const [user, setUser] = useState(null);
+  const insets = useSafeAreaInsets();
 
   const imageScrollRef = useRef(null);
 
@@ -264,15 +266,24 @@ const ProductDetailScreen = () => {
       <StatusBar barStyle="light-content" backgroundColor="#2B3990" />
 
       {/* Header - Brand Blue Background */}
-      <View style={[styles.header, isDark && { backgroundColor: '#1A237E' }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+      <View style={[
+        styles.header,
+        { paddingTop: insets.top + 5 },
+        isDark && { backgroundColor: '#1A237E' }
+      ]}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+        >
           <Icon name={IconNames.ArrowLeft} size={28} color="#fff" />
         </TouchableOpacity>
         <View style={styles.headerRight}>
-          {/* <Icon name={IconNames.Search} size={26} color="#fff" style={{ marginRight: 16 }} /> */}
           {(user?.role === 'agent' || user?.role === 'admin') ? (
-            <TouchableOpacity onPress={handleShare}>
-              <Icon name="share" size={26} color="#fff" />
+            <TouchableOpacity
+              onPress={handleShare}
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            >
+              <Icon name="share" size={24} color="#fff" />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -414,11 +425,21 @@ const ProductDetailScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingTop: 12, paddingBottom: 15, paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 15,
+    paddingHorizontal: 12,
     backgroundColor: '#2B3990',
   },
-  headerRight: { flexDirection: 'row' },
+  headerBtn: {
+    padding: 8,
+    borderRadius: 20,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   imageContainer: { width: SCREEN_WIDTH, height: 320, backgroundColor: '#fff', paddingVertical: 10 },
   productImage: { width: SCREEN_WIDTH - 40, height: 280 },
   pagination: { flexDirection: 'row', justifyContent: 'center', marginTop: -20 },
