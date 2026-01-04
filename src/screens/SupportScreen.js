@@ -78,7 +78,7 @@ const SupportScreen = () => {
                     <ContactOption
                         icon="mail"
                         label="Email Us"
-                        value="support@hascart.com"
+                        value="hascart99@gmail.com"
                         onPress={handleEmail}
                         isPrimary={true}
                     />

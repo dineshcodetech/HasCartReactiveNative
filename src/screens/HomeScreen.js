@@ -11,11 +11,13 @@ import {
   SafeAreaView
 } from 'react-native';
 import { apiCall } from '../services/api';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BannerCarousel from '../components/BannerCarousel';
 import CategoryRow from '../components/CategoryRow';
 import Icon from '../components/Icon';
 import CustomLoader from '../components/CustomLoader';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 
 const HomeScreen = ({ navigation }) => {
   // const { isDark } = require('../context/ThemeContext').useTheme();
@@ -28,6 +30,29 @@ const HomeScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [userName, setUserName] = useState('');
   const [activeTab, setActiveTab] = useState('For You');
+
+  const syncUserProfile = async () => {
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      if (token) {
+        const response = await apiCall('/api/auth/me');
+        if (response.ok && response.data.success) {
+          const userData = response.data.data;
+          await AsyncStorage.setItem('userData', JSON.stringify(userData));
+          console.log('[Home] User profile synced:', userData.name, 'Code:', userData.referralCode);
+          setUserName(userData.name?.split(' ')[0] || '');
+        }
+      }
+    } catch (error) {
+      console.error('[Home] Profile sync error:', error);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      syncUserProfile();
+    }, [])
+  );
 
   const fetchData = async () => {
     try {
@@ -87,8 +112,10 @@ const HomeScreen = ({ navigation }) => {
     fetchData();
   }, []);
 
+  const insets = useSafeAreaInsets();
+
   const renderSearchHeader = () => (
-    <View style={styles.topContainer}>
+    <View style={[styles.topContainer]}>
       <View style={styles.searchBarWrapper}>
         <TouchableOpacity
           style={styles.searchBar}
@@ -105,11 +132,7 @@ const HomeScreen = ({ navigation }) => {
           { name: 'For You', icon: 'shopping-bag' },
           ...categories.map(cat => ({
             name: cat.name,
-            icon: cat.amazonSearchIndex === 'Electronics' ? 'smartphone' :
-              cat.amazonSearchIndex === 'Fashion' ? 'checkroom' :
-                cat.amazonSearchIndex === 'Automotive' ? 'directions-car' :
-                  cat.amazonSearchIndex === 'Appliances' ? 'tv' :
-                    cat.amazonSearchIndex === 'Beauty' ? 'spa' : 'grid-view'
+            icon: cat.icon || 'grid-view'
           }))
         ].map((tab, i) => (
           <TouchableOpacity
@@ -139,8 +162,10 @@ const HomeScreen = ({ navigation }) => {
     : categories.filter(c => c.name.toLowerCase().includes(activeTab.toLowerCase()) || (c.amazonSearchIndex || '').toLowerCase().includes(activeTab.toLowerCase()));
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: '#2B3990' }]}>
+    <View style={[styles.safeArea, { backgroundColor: '#2B3990' }]}>
       <StatusBar barStyle="light-content" backgroundColor="#2B3990" />
+
+      <View style={{ height: insets.top, backgroundColor: '#2B3990' }} />
 
       {renderSearchHeader()}
 
@@ -208,7 +233,7 @@ const HomeScreen = ({ navigation }) => {
         )}
 
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -219,8 +244,10 @@ const styles = StyleSheet.create({
   },
   topContainer: {
     backgroundColor: '#2B3990', // Brand blue
-    paddingTop: 8,
+    paddingTop: 4,
     paddingBottom: 16,
+    zIndex: 100,
+    elevation: 4,
   },
   searchBarWrapper: {
     flexDirection: 'row',
@@ -230,12 +257,17 @@ const styles = StyleSheet.create({
   },
   searchBar: {
     flex: 1,
-    height: 48,
+    height: 50,
     backgroundColor: '#fff',
-    borderRadius: 8,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
   },
   searchIcon: {
     marginRight: 8,

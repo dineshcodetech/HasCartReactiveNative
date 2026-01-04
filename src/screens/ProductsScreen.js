@@ -11,6 +11,7 @@ import {
   RefreshControl,
   Share,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { apiCall, WEB_BASE_URL } from '../services/api';
 import Icon from '../components/Icon';
@@ -40,8 +41,14 @@ const ProductsScreen = ({ route }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [user, setUser] = useState(null);
 
+  // Track the actual query and index being used for pagination/refresh
+  const [currentQuery, setCurrentQuery] = useState(DEFAULT_FILTER.query);
+  const [currentIndex, setCurrentIndex] = useState(DEFAULT_FILTER.searchIndex);
+
   // Dynamic categories from backend
   const [categories, setCategories] = useState([DEFAULT_FILTER]);
+  // Track current category context for click attribution
+  const [activeCategoryContext, setActiveCategoryContext] = useState(null);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
 
   // Fetch categories from backend
@@ -90,6 +97,12 @@ const ProductsScreen = ({ route }) => {
   const fetchProducts = useCallback(async (query, searchIndex = 'All', page = 1, shouldAppend = false) => {
     if (!hasMore && shouldAppend) return;
 
+    // Update current tracking states for pagination/refresh
+    if (!shouldAppend) {
+      setCurrentQuery(query);
+      setCurrentIndex(searchIndex);
+    }
+
     try {
       if (!shouldAppend) {
         setLoading(true);
@@ -131,8 +144,9 @@ const ProductsScreen = ({ route }) => {
     setRefreshing(true);
     setCurrentPage(1);
     setHasMore(true);
-    fetchProducts(searchQuery || DEFAULT_FILTER.query, DEFAULT_FILTER.searchIndex, 1, false);
-  }, [searchQuery]);
+    // Refresh with currently active query and index
+    fetchProducts(currentQuery, currentIndex, 1, false);
+  }, [currentQuery, currentIndex, fetchProducts]);
 
   /* Updated to handle route params from Categories screen or others */
   useEffect(() => {
@@ -160,7 +174,22 @@ const ProductsScreen = ({ route }) => {
 
       // Find matching filter if exists
       const matchingCat = categories.find(c => c.searchIndex === index) || { id: 'custom' };
-      if (matchingCat.id !== 'custom') setActiveFilterId(matchingCat.id);
+      if (matchingCat.id !== 'custom') {
+        setActiveFilterId(matchingCat.id);
+        // Set category context from matched filter
+        setActiveCategoryContext({
+          name: matchingCat.label,
+          amazonSearchIndex: matchingCat.searchIndex,
+          _id: matchingCat.id
+        });
+      } else {
+        // Set from params for external navigation
+        setActiveCategoryContext({
+          name: params.category || 'Products',
+          amazonSearchIndex: index,
+          _id: 'external'
+        });
+      }
 
       fetchProducts(query, index);
     } else {
@@ -182,6 +211,12 @@ const ProductsScreen = ({ route }) => {
     setCurrentPage(1);
     setHasMore(true);
     setProducts([]); // Clear current list immediately
+    // Update category context when filter changes
+    setActiveCategoryContext({
+      name: filter.label,
+      amazonSearchIndex: filter.searchIndex,
+      _id: filter.id
+    });
     fetchProducts(filter.query, filter.searchIndex, 1, false);
   };
 
@@ -200,21 +235,8 @@ const ProductsScreen = ({ route }) => {
       const nextPage = currentPage + 1;
       setCurrentPage(nextPage);
 
-      let query, searchIndex;
-      if (activeFilterId === 'search') {
-        query = searchQuery;
-        searchIndex = 'All';
-      } else {
-        const activeCategory = categories.find(c => c.id === activeFilterId) || categories[0];
-        if (activeCategory) {
-          query = activeCategory.query;
-          searchIndex = activeCategory.searchIndex;
-        } else {
-          return; // No category found, stop
-        }
-      }
-
-      fetchProducts(query, searchIndex, nextPage, true);
+      // Use tracked query and index for pagination
+      fetchProducts(currentQuery, currentIndex, nextPage, true);
     }
   };
 
@@ -266,7 +288,11 @@ const ProductsScreen = ({ route }) => {
     return (
       <TouchableOpacity
         className="mb-4 bg-white dark:bg-gray-900 rounded-xl p-3 shadow-sm border border-gray-100 dark:border-gray-800"
-        onPress={() => navigation.navigate('ProductDetail', { asin: item.ASIN, product: item })}
+        onPress={() => navigation.navigate('ProductDetail', {
+          asin: item.ASIN,
+          product: item,
+          categoryContext: activeCategoryContext
+        })}
         activeOpacity={0.9}
       >
         <View className="flex-row">
@@ -339,13 +365,13 @@ const ProductsScreen = ({ route }) => {
   return (
     <View className="flex-1 bg-gray-50 dark:bg-black">
       {/* Header */}
-      <View className="px-4 pt-2 pb-2 bg-white dark:bg-gray-900 z-10 shadow-sm border-b border-gray-100 dark:border-gray-800">
+      <View className="px-4 pt-3 pb-1 bg-white dark:bg-gray-900 z-10 shadow-sm border-b border-gray-100 dark:border-gray-800">
 
         {/* Removed "Archive." text as per minimalist screenshot preference */}
 
         {/* Search Bar */}
-        <View className="flex-row items-center bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2.5 mb-3">
-          <Icon name="search" size={20} color="#999" style={{ marginRight: 8 }} />
+        <View className="flex-row items-center bg-gray-100 dark:bg-gray-800 rounded-xl px-4 h-12 mb-3 shadow-sm border border-gray-200 dark:border-gray-700">
+          <Icon name="search" size={20} color="#999" />
           <TextInput
             ref={searchInputRef}
             placeholder="Search products..."

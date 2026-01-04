@@ -55,15 +55,14 @@ const AboutUsScreen = () => {
 
                 <View className="mb-8">
                     <Text className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Connect With Us</Text>
-                    <LinkItem icon="language" label="Website" url="https://hascart.com" />
-                    <LinkItem icon="favorite" label="Instagram" url="https://instagram.com" />
-                    <LinkItem icon="thumb-up" label="Twitter" url="https://twitter.com" />
+                    <LinkItem icon="language" label="Website" url="https://hascart.in" />
+                    <LinkItem icon="favorite" label="Instagram" url="https://www.instagram.com/hasde_als?igsh=cnE1OWUzeDB2aGF2" />
                 </View>
 
                 <View>
                     <Text className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Legal</Text>
-                    <LinkItem icon="lock" label="Privacy Policy" url="https://hascart.com/privacy" />
-                    <LinkItem icon="description" label="Terms of Service" url="https://hascart.com/terms" />
+                    <LinkItem icon="lock" label="Privacy Policy" url="https://hascart.in/privacy" />
+                    <LinkItem icon="description" label="Terms of Service" url="https://hascart.in/terms" />
                 </View>
 
                 <View className="mt-12 items-center">

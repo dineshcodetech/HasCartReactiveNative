@@ -30,7 +30,7 @@ const ProductDetailScreen = () => {
   const navigation = useNavigation();
   // const { isDark } = useTheme();
   const isDark = false;
-  const { asin, product } = route.params || {};
+  const { asin, product, categoryContext } = route.params || {};
 
   const [productDetail, setProductDetail] = useState(product || null);
   const [loading, setLoading] = useState(!product);
@@ -79,7 +79,9 @@ const ProductDetailScreen = () => {
           'ItemInfo.TechnicalInfo',
           'ItemInfo.ProductInfo',
           'ItemInfo.ByLineInfo',
+          'ItemInfo.ByLineInfo',
           'ItemInfo.Classifications',
+          'BrowseNodeInfo.BrowseNodes',
           'Offers.Listings.Price',
           'Offers.Listings.Condition',
           'Offers.Listings.DeliveryInfo.IsPrimeEligible',
@@ -159,15 +161,26 @@ const ProductDetailScreen = () => {
       console.log("here", productDetail);
 
       if (productDetail) {
+        // PRIORITY 1: Use specific category name from navigation context (matches our DB exactly)
+        // PRIORITY 2: Use Amazon Search Index from context
+        // PRIORITY 3: Fall back to product's Amazon metadata
+        const detectedCategory = categoryContext?.name ||
+          categoryContext?.amazonSearchIndex ||
+          productDetail.BrowseNodeInfo?.BrowseNodes?.[0]?.DisplayName ||
+          productDetail.ItemInfo?.Classifications?.ProductGroup?.DisplayValue ||
+          'Unknown';
+
         const productData = {
           asin: asin || productDetail.ASIN,
           productName: getProductTitle(productDetail),
-          category: productDetail.ItemInfo?.Classifications?.ProductGroup?.DisplayValue || 'Unknown',
+          category: detectedCategory,
           price: priceInfo?.amount || 0,
           imageUrl: allImages[0] || '',
           productUrl: url,
         };
-        console.log('[ProductDetail] Tracking click with token:', token ? 'YES' : 'NO');
+        console.log('[ProductDetail] Tracking click with category:', detectedCategory);
+        console.log('[ProductDetail] Category source:', categoryContext ? 'Navigation Context' : 'Product Metadata');
+        console.log('[ProductDetail] With token:', token ? 'YES' : 'NO');
         await trackProductClick(productData, token);
 
       }
@@ -182,9 +195,9 @@ const ProductDetailScreen = () => {
     try {
       const title = getProductTitle(productDetail);
       const referralCode = user?.referralCode || '';
-      const agentId = user?._id || ''; // Get the agent's ID
+      const agentId = user?._id || user?.id || ''; // Get the agent's ID (handle both _id and id)
 
-      // Construct URL with both parameters for redundancy
+      console.log('[ProductDetail] Sharing with attribution:', { referralCode, agentId });
       let shareUrl = `${WEB_BASE_URL}/product/${asin || productDetail?.ASIN}`;
       const params = [];
       if (referralCode) params.push(`ref=${referralCode}`);

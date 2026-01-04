@@ -10,6 +10,7 @@ import {
     Dimensions,
     RefreshControl
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { apiCall } from '../services/api';
 import Icon from '../components/Icon';
@@ -22,6 +23,7 @@ const SIDEBAR_WIDTH = width * 0.25; // 25% for sidebar
 
 const CategoriesScreen = () => {
     const navigation = useNavigation();
+    const insets = useSafeAreaInsets();
     // const { isDark } = require('../context/ThemeContext').useTheme();
     const isDark = false;
     const [categories, setCategories] = useState([]);
@@ -115,33 +117,7 @@ const CategoriesScreen = () => {
     }, [selectedCategory]);
 
     const getCategoryIcon = (category) => {
-        const index = category.amazonSearchIndex || category.name;
-        // Map of Amazon Indices/Names to MaterialIcons names
-        // Reference: https://oblador.github.io/react-native-vector-icons/
-        const iconMap = {
-            'Electronics': 'smartphone', // or devices
-            'Automotive': 'directions-car',
-            'HomeGarden': 'home',
-            'Books': 'menu-book',
-            'Fashion': 'checkroom', // or local-mall
-            'Clothing': 'checkroom',
-            'ToysGames': 'toys', // or videogames
-            'Beauty': 'face', // or brush
-            'Computers': 'computer', // or laptop
-            'SportsOutdoors': 'sports-soccer', // or pedal-bike
-            'HealthPersonalCare': 'medical-services', // or local-hospital
-            'Baby': 'child-care',
-            'GroceryGourmetFood': 'restaurant', // or local-grocery-store
-            'PetSupplies': 'pets',
-            'OfficeProducts': 'work',
-            'VideoGames': 'sports-esports',
-            'Music': 'music-note',
-            'MoviesTV': 'movie',
-            'Industrial': 'build',
-            'Handmade': 'brush'
-        };
-
-        return iconMap[index] || iconMap[category.name] || 'grid-view'; // 'apps' -> 'grid-view' in Material
+        return category.icon || 'grid-view';
     };
 
     const renderSidebarItem = ({ item }) => {
@@ -172,7 +148,9 @@ const CategoriesScreen = () => {
         if (!selectedCategory) return;
         navigation.navigate('Products', {
             category: selectedCategory.name,
-            searchQuery: selectedCategory.searchQuery || selectedCategory.name,
+            searchQuery: (selectedCategory.searchQueries && selectedCategory.searchQueries.length > 0)
+                ? selectedCategory.searchQueries[0]
+                : (selectedCategory.searchQuery || selectedCategory.name),
             searchIndex: selectedCategory.amazonSearchIndex
         });
     };
@@ -191,7 +169,15 @@ const CategoriesScreen = () => {
         return (
             <TouchableOpacity
                 style={styles.circularProductItem}
-                onPress={() => navigation.navigate('ProductDetail', { product: item, asin: item.ASIN })}
+                onPress={() => navigation.navigate('ProductDetail', {
+                    product: item,
+                    asin: item.ASIN,
+                    categoryContext: selectedCategory ? {
+                        name: selectedCategory.name,
+                        amazonSearchIndex: selectedCategory.amazonSearchIndex,
+                        _id: selectedCategory._id
+                    } : null
+                })}
             >
                 <View style={[styles.circularImageContainer, isDark && { backgroundColor: '#333', borderColor: '#444' }]}>
                     <Image source={imageSource} style={styles.circularImage} resizeMode="cover" />
@@ -204,7 +190,7 @@ const CategoriesScreen = () => {
     return (
         <View style={styles.container}>
             {/* Header */}
-            <View style={[styles.header, isDark && { backgroundColor: '#000', borderBottomColor: '#222' }]}>
+            <View style={[styles.header, isDark && { backgroundColor: '#000', borderBottomColor: '#222' }, { paddingTop: insets.top + 8 }]}>
                 <Text style={[styles.headerTitle, isDark && { color: '#fff' }]}>All Categories</Text>
                 <View style={styles.headerIcons}>
                     <TouchableOpacity
@@ -281,7 +267,6 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 16,
-        paddingTop: 50, // Safe area padding roughly
         paddingBottom: 12,
         backgroundColor: '#fff',
         elevation: 2,

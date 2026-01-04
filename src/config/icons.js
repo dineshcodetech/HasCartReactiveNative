@@ -8,10 +8,27 @@ export const IconNames = {
   Profile: 'person',
   
   // Categories
-  Electronics: 'devices',
+  Electronics: 'smartphone',
   Fashion: 'checkroom',
   HomeCategory: 'home',
   Sports: 'sports-soccer',
+  Automotive: 'directions-car',
+  Appliances: 'tv',
+  Beauty: 'spa',
+  Books: 'menu-book',
+  Toys: 'toys',
+  Computers: 'computer',
+  Baby: 'child-care',
+  Grocery: 'restaurant',
+  Pets: 'pets',
+  Watches: 'watch',
+  Electronics_Alt: 'electric-bolt',
+  Kitchen: 'kitchen',
+  Gym: 'fitness-center',
+  Shopping: 'local-mall',
+  Audio: 'headphones',
+  Grid: 'grid-view',
+  Default: 'grid-view',
   
   // Product
   ProductPlaceholder: 'inventory-2',

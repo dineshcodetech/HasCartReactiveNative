@@ -256,6 +256,14 @@ const LoginScreen = () => {
                 onChangeText={value => handleInputChange('password', value)}
                 secureTextEntry
               />
+              {isLogin && (
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('ForgotPassword')}
+                  className="mt-2 items-end"
+                >
+                  <Text className="text-gray-400 text-[10px] tracking-widest font-bold uppercase">Forgot Password?</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {!isLogin && (

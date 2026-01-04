@@ -12,7 +12,11 @@ import {IconNames} from '../config/icons';
  * @param {object} style - Additional styles
  */
 const Icon = ({name, size = 24, color = '#333', style}) => {
-  const iconName = IconNames[name] || name;
+  // 1. Try to get name from IconNames mapping
+  // 2. Fallback to name itself
+  let iconName = IconNames[name] || name;
+  
+  // No longer forcing underscores as the environment seems to prefer hyphens
   
   try {
     return (

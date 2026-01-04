@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StyleSheet, ActivityIndicator, View, Text, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import './global.css';
 
 import LoginScreen from './src/screens/LoginScreen';
@@ -17,6 +18,7 @@ import SupportScreen from './src/screens/SupportScreen';
 import ReferralsScreen from './src/screens/ReferralsScreen';
 import AgentClicksScreen from './src/screens/AgentClicksScreen';
 import WithdrawalScreen from './src/screens/WithdrawalScreen';
+import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 import Icon from './src/components/Icon';
 import { IconNames } from './src/config/icons';
 // import { ThemeProvider } from './src/context/ThemeContext';
@@ -161,68 +163,75 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{ headerShown: false }}
-        initialRouteName={isAuthenticated ? 'MainTabs' : 'Login'}>
-        <Stack.Screen
-          name="Login"
-          component={LoginScreen}
-          options={{ animationEnabled: false }}
-        />
-        <Stack.Screen
-          name="MainTabs"
-          component={MainTabs}
-          options={{ animationEnabled: false }}
-        />
-        <Stack.Screen
-          name="ProductDetail"
-          component={ProductDetailScreen}
-          options={{
-            headerShown: false,
-            presentation: 'card',
-          }}
-        />
-        <Stack.Screen
-          name="Products"
-          component={ProductsScreen}
-          options={{
-            headerShown: true, // Show header for back button
-            title: 'Products',
-            headerBackTitleVisible: false,
-            headerStyle: {
-              backgroundColor: '#fff',
-            },
-            headerTintColor: '#000',
-          }}
-        />
-        <Stack.Screen
-          name="AboutUs"
-          component={AboutUsScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Support"
-          component={SupportScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Referrals"
-          component={ReferralsScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="AgentClicks"
-          component={AgentClicksScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Withdrawal"
-          component={WithdrawalScreen}
-          options={{ headerShown: false }}
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <SafeAreaProvider>
+      <NavigationContainer>
+        <Stack.Navigator
+          screenOptions={{ headerShown: false }}
+          initialRouteName={isAuthenticated ? 'MainTabs' : 'Login'}>
+          <Stack.Screen
+            name="Login"
+            component={LoginScreen}
+            options={{ animationEnabled: false }}
+          />
+          <Stack.Screen
+            name="ForgotPassword"
+            component={ForgotPasswordScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="MainTabs"
+            component={MainTabs}
+            options={{ animationEnabled: false }}
+          />
+          <Stack.Screen
+            name="ProductDetail"
+            component={ProductDetailScreen}
+            options={{
+              headerShown: false,
+              presentation: 'card',
+            }}
+          />
+          <Stack.Screen
+            name="Products"
+            component={ProductsScreen}
+            options={{
+              headerShown: true, // Show header for back button
+              title: 'Products',
+              headerBackTitleVisible: false,
+              headerStyle: {
+                backgroundColor: '#fff',
+              },
+              headerTintColor: '#000',
+            }}
+          />
+          <Stack.Screen
+            name="AboutUs"
+            component={AboutUsScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Support"
+            component={SupportScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Referrals"
+            component={ReferralsScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="AgentClicks"
+            component={AgentClicksScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Withdrawal"
+            component={WithdrawalScreen}
+            options={{ headerShown: false }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }
 

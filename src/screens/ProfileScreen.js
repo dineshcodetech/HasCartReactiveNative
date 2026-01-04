@@ -361,6 +361,10 @@ const ProfileScreen = () => {
             isDestructive={true}
             onPress={handleLogout}
           />
+
+          <View className="mt-8 items-center pb-8">
+            <Text className="text-gray-300 text-[10px] font-bold uppercase tracking-[0.2em]">Version 1.0.3</Text>
+          </View>
         </View>
       </ScrollView>
     </View>

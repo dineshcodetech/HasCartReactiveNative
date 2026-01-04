@@ -14,7 +14,7 @@ const ProductCard = ({ product, onPress, onShare, isDark, isAgent }) => {
         product.LargeImage?.URL ||
         product.MediumImage?.URL ||
         'https://via.placeholder.com/150';
-    
+
     // Get optimized source (handles Google Drive URLs)
     const validImageSource = getOptimizedImageSource(rawImageUrl, 400);
 
@@ -121,11 +121,34 @@ const CategoryRow = ({ category, initialProducts = [] }) => {
     };
 
     const handleSeeAll = () => {
-        navigation.navigate('Products', { category: category.amazonSearchIndex });
+        let query = (category.searchQueries && category.searchQueries.length > 0)
+            ? category.searchQueries[0]
+            : (category.searchQuery || category.name);
+
+        // Special handling for pseudo-categories to ensure they redirect to something useful
+        if (category._id === 'recent-clicks') {
+            query = 'trending products';
+        } else if (category._id === 'personalized') {
+            query = 'best sellers';
+        }
+
+        navigation.navigate('Products', {
+            category: category.name,
+            searchQuery: query,
+            searchIndex: category.amazonSearchIndex || 'All'
+        });
     };
 
     const handleProductPress = (product) => {
-        navigation.navigate('ProductDetail', { product });
+        // Pass both product AND category context for accurate click tracking
+        navigation.navigate('ProductDetail', {
+            product,
+            categoryContext: {
+                name: category.name,
+                amazonSearchIndex: category.amazonSearchIndex,
+                _id: category._id
+            }
+        });
     };
 
     const handleShare = async (product) => {
@@ -133,7 +156,19 @@ const CategoryRow = ({ category, initialProducts = [] }) => {
             const title = product.ItemInfo?.Title?.DisplayValue || 'Product';
             const asin = product.ASIN;
             const referralCode = user?.referralCode || '';
-            const shareUrl = `${WEB_BASE_URL}/product/${asin}${referralCode ? `?ref=${referralCode}` : ''}`;
+            const agentId = user?._id || user?.id || '';
+
+            // Construct URL with both parameters for redundancy
+            let shareUrl = `${WEB_BASE_URL}/product/${asin}`;
+            const params = [];
+            if (referralCode) params.push(`ref=${referralCode}`);
+            if (agentId) params.push(`agentId=${agentId}`);
+
+            if (params.length > 0) {
+                shareUrl += `?${params.join('&')}`;
+            }
+
+            console.log('[CategoryRow] Sharing with attribution:', { referralCode, agentId });
 
             await Share.share({
                 message: `${title}\n\nCheck this out on HasCart: ${shareUrl}`,
