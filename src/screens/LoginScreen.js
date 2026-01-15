@@ -34,22 +34,22 @@ const LoginScreen = () => {
   const [referringAgent, setReferringAgent] = useState(null);
   const [isValidatingReferral, setIsValidatingReferral] = useState(false);
 
-  const fadeAnim = new Animated.Value(0);
-  const slideAnim = new Animated.Value(20);
+  const fadeAnim = new Animated.Value(1);
+  const slideAnim = new Animated.Value(0);
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    // Animated.parallel([
+    //   Animated.timing(fadeAnim, {
+    //     toValue: 1,
+    //     duration: 800,
+    //     useNativeDriver: true,
+    //   }),
+    //   Animated.timing(slideAnim, {
+    //     toValue: 0,
+    //     duration: 800,
+    //     useNativeDriver: true,
+    //   }),
+    // ]).start();
   }, []);
 
   // Real-time Referral Code Validation
@@ -166,7 +166,7 @@ const LoginScreen = () => {
           console.log('[Login] User data stored:', data.data.name);
         }
         if (global.setAppAuthState) global.setAppAuthState(true);
-        navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+        // navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
       } else {
         Alert.alert('Error', data.message || 'Authentication failed.');
       }
@@ -180,7 +180,8 @@ const LoginScreen = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-white"
+      style={{ flex: 1 }}
+      className="bg-white"
     >
       <ScrollView
         contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}

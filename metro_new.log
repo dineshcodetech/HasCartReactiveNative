@@ -1,0 +1,46 @@
+yarn run v1.22.22
+$ react-native start --reset-cache
+
+Welcome to React Native v0.78
+Starting dev server on http://localhost:8081
+
+
+                        ▒▒▓▓▓▓▒▒
+                     ▒▓▓▓▒▒░░▒▒▓▓▓▒
+                  ▒▓▓▓▓░░░▒▒▒▒░░░▓▓▓▓▒
+                 ▓▓▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▓▓
+                 ▓▓░░░░░▒▓▓▓▓▓▓▒░░░░░▓▓
+                 ▓▓░░▓▓▒░░░▒▒░░░▒▓▒░░▓▓
+                 ▓▓░░▓▓▓▓▓▒▒▒▒▓▓▓▓▒░░▓▓
+                 ▓▓░░▓▓▓▓▓▓▓▓▓▓▓▓▓▒░░▓▓
+                 ▓▓▒░░▒▒▓▓▓▓▓▓▓▓▒░░░▒▓▓
+                  ▒▓▓▓▒░░░▒▓▓▒░░░▒▓▓▓▒
+                     ▒▓▓▓▒░░░░▒▓▓▓▒
+                        ▒▒▓▓▓▓▒▒
+
+
+ WARN  the transform cache was reset.
+                Welcome to Metro v0.81.5
+              Fast - Scalable - Integrated
+
+
+ WARN  Watchman `watch-project` returned a warning: Recrawled this watch 5 times, most recently because:
+MustScanSubDirs UserDroppedTo resolve, please review the information on
+https://facebook.github.io/watchman/docs/troubleshooting.html#recrawl
+To clear this warning, run:
+`watchman watch-del '/Users/dinesh/Documents/GitHub/CODETECH/HasCartReactiveNative' ; watchman watch-project '/Users/dinesh/Documents/GitHub/CODETECH/HasCartReactiveNative'`
+
+ WARN  Watchman `query` returned a warning: Recrawled this watch 5 times, most recently because:
+MustScanSubDirs UserDroppedTo resolve, please review the information on
+https://facebook.github.io/watchman/docs/troubleshooting.html#recrawl
+To clear this warning, run:
+`watchman watch-del '/Users/dinesh/Documents/GitHub/CODETECH/HasCartReactiveNative' ; watchman watch-project '/Users/dinesh/Documents/GitHub/CODETECH/HasCartReactiveNative'`
+
+Recrawled this watch 5 times, most recently because:
+MustScanSubDirs UserDroppedTo resolve, please review the information on
+https://facebook.github.io/watchman/docs/troubleshooting.html#recrawl
+To clear this warning, run:
+`watchman watch-del '/Users/dinesh/Documents/GitHub/CODETECH/HasCartReactiveNative' ; watchman watch-project '/Users/dinesh/Documents/GitHub/CODETECH/HasCartReactiveNative'`
+
+error Command failed with signal "SIGHUP".
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.

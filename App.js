@@ -166,69 +166,77 @@ export default function App() {
     <SafeAreaProvider>
       <NavigationContainer>
         <Stack.Navigator
-          screenOptions={{ headerShown: false }}
-          initialRouteName={isAuthenticated ? 'MainTabs' : 'Login'}>
-          <Stack.Screen
-            name="Login"
-            component={LoginScreen}
-            options={{ animationEnabled: false }}
-          />
-          <Stack.Screen
-            name="ForgotPassword"
-            component={ForgotPasswordScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="MainTabs"
-            component={MainTabs}
-            options={{ animationEnabled: false }}
-          />
-          <Stack.Screen
-            name="ProductDetail"
-            component={ProductDetailScreen}
-            options={{
-              headerShown: false,
-              presentation: 'card',
-            }}
-          />
-          <Stack.Screen
-            name="Products"
-            component={ProductsScreen}
-            options={{
-              headerShown: true, // Show header for back button
-              title: 'Products',
-              headerBackTitleVisible: false,
-              headerStyle: {
-                backgroundColor: '#fff',
-              },
-              headerTintColor: '#000',
-            }}
-          />
-          <Stack.Screen
-            name="AboutUs"
-            component={AboutUsScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Support"
-            component={SupportScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Referrals"
-            component={ReferralsScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="AgentClicks"
-            component={AgentClicksScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Withdrawal"
-            component={WithdrawalScreen}
-            options={{ headerShown: false }}
-          />
+          screenOptions={{ headerShown: false }}>
+          {isAuthenticated ? (
+            // Authenticated Stack
+            <>
+              <Stack.Screen
+                name="MainTabs"
+                component={MainTabs}
+                options={{ animationEnabled: false }}
+              />
+              <Stack.Screen
+                name="ProductDetail"
+                component={ProductDetailScreen}
+                options={{
+                  headerShown: false,
+                  presentation: 'card',
+                }}
+              />
+              <Stack.Screen
+                name="Products"
+                component={ProductsScreen}
+                options={{
+                  headerShown: true, // Show header for back button
+                  title: 'Products',
+                  headerBackTitleVisible: false,
+                  headerStyle: {
+                    backgroundColor: '#fff',
+                  },
+                  headerTintColor: '#000',
+                }}
+              />
+              <Stack.Screen
+                name="AboutUs"
+                component={AboutUsScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="Support"
+                component={SupportScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="Referrals"
+                component={ReferralsScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="AgentClicks"
+                component={AgentClicksScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="Withdrawal"
+                component={WithdrawalScreen}
+                options={{ headerShown: false }}
+              />
+            </>
+          ) : (
+            // Non-Authenticated Stack
+            <>
+              <Stack.Screen
+                name="Login"
+                component={LoginScreen}
+                options={{ animationEnabled: false }}
+              />
+              <Stack.Screen
+                name="ForgotPassword"
+                component={ForgotPasswordScreen}
+                options={{ headerShown: false }}
+              />
+            </>
+          )}
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
