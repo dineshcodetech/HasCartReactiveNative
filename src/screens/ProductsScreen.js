@@ -287,7 +287,7 @@ const ProductsScreen = ({ route }) => {
 
     return (
       <TouchableOpacity
-        className="mb-4 bg-white dark:bg-gray-900 rounded-xl p-3 shadow-sm border border-gray-100 dark:border-gray-800 relative"
+        className="mb-4 bg-white rounded-xl p-3 shadow-sm border border-gray-100 relative"
         onPress={() => navigation.navigate('ProductDetail', {
           asin: item.ASIN,
           product: item,
@@ -312,7 +312,7 @@ const ProductsScreen = ({ route }) => {
           {/* Right: Info */}
           <View className="flex-1 ml-3 justify-start">
             {brand && <Text className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">{brand}</Text>}
-            <Text numberOfLines={2} className="text-sm text-gray-900 dark:text-white font-medium leading-5 mb-1">{title}</Text>
+            <Text numberOfLines={2} className="text-sm text-gray-900 font-medium leading-5 mb-1">{title}</Text>
 
             {/* Rating Row - Only show if rating exists */}
             {rating && (
@@ -325,16 +325,16 @@ const ProductsScreen = ({ route }) => {
               </View>
             )}
 
-            <Text className="text-lg font-bold text-gray-900 dark:text-gray-100">{price}</Text>
+            <Text className="text-lg font-bold text-gray-900">{price}</Text>
           </View>
         </View>
 
         {/* Bottom: Spec Chips */}
         {specs.length > 0 && (
-          <View className="flex-row flex-wrap mt-3 pt-3 border-t border-gray-50 dark:border-gray-800">
+          <View className="flex-row flex-wrap mt-3 pt-3 border-t border-gray-50">
             {specs.map((spec, index) => (
-              <View key={index} className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded px-2 py-1 mr-2 mb-1">
-                <Text className="text-[10px] text-gray-600 dark:text-gray-300 font-medium">{spec}</Text>
+              <View key={index} className="bg-gray-50 border border-gray-100 rounded px-2 py-1 mr-2 mb-1">
+                <Text className="text-[10px] text-gray-600 font-medium">{spec}</Text>
               </View>
             ))}
           </View>
@@ -343,7 +343,7 @@ const ProductsScreen = ({ route }) => {
         {/* Share Icon - Bottom Right */}
         {(user?.role === 'agent' || user?.role === 'admin') && (
           <TouchableOpacity
-            className="absolute bottom-2 right-2 bg-white dark:bg-gray-800 rounded-full p-2 shadow-sm border border-gray-100 dark:border-gray-700"
+            className="absolute bottom-2 right-2 bg-white rounded-full p-2 shadow-sm border border-gray-100"
             onPress={(e) => {
               e.stopPropagation();
               handleShare(item);
@@ -362,20 +362,20 @@ const ProductsScreen = ({ route }) => {
   const showFilters = !isCategoryView;
 
   return (
-    <View className="flex-1 bg-gray-50 dark:bg-black">
+    <View className="flex-1 bg-gray-50">
       {/* Header */}
-      <View className="px-4 pt-3 pb-1 bg-white dark:bg-gray-900 z-10 shadow-sm border-b border-gray-100 dark:border-gray-800">
+      <View className="px-4 pt-3 pb-1 bg-white z-10 shadow-sm border-b border-gray-100">
 
         {/* Removed "Archive." text as per minimalist screenshot preference */}
 
         {/* Search Bar */}
-        <View className="flex-row items-center bg-gray-100 dark:bg-gray-800 rounded-xl px-4 h-12 mb-3 shadow-sm border border-gray-200 dark:border-gray-700">
+        <View className="flex-row items-center bg-gray-100 rounded-xl px-4 h-12 mb-3 shadow-sm border border-gray-200">
           <Icon name="search" size={20} color="#999" />
           <TextInput
             ref={searchInputRef}
             placeholder="Search products..."
             placeholderTextColor="#999"
-            className="flex-1 text-base text-black dark:text-white font-medium p-0"
+            className="flex-1 text-base text-black font-medium p-0"
             value={searchQuery}
             onChangeText={setSearchQuery}
             onSubmitEditing={handleSearch}
@@ -401,9 +401,9 @@ const ProductsScreen = ({ route }) => {
                   return (
                     <TouchableOpacity
                       onPress={() => handleFilterPress(item)}
-                      className={`mr-2 px-4 py-1.5 rounded-full border ${isActive ? 'bg-primary border-primary dark:bg-white dark:border-white' : 'bg-white border-gray-300 dark:bg-gray-800 dark:border-gray-700'} `}
+                      className={`mr-2 px-4 py-1.5 rounded-full border ${isActive ? 'bg-primary border-primary' : 'bg-white border-gray-300'} `}
                     >
-                      <Text className={`text-xs font-bold tracking-wide ${isActive ? 'text-white dark:text-primary' : 'text-gray-700 dark:text-gray-300'} `}>
+                      <Text className={`text-xs font-bold tracking-wide ${isActive ? 'text-white' : 'text-gray-700'} `}>
                         {item.label}
                       </Text>
                     </TouchableOpacity>
@@ -423,8 +423,8 @@ const ProductsScreen = ({ route }) => {
           <View className="flex-1 justify-center items-center">
             <Icon name="cloud-off" size={32} color={isDark ? "#999" : "#000"} />
             <Text className="text-gray-400 mt-4">{error}</Text>
-            <TouchableOpacity onPress={() => fetchProducts(searchQuery || DEFAULT_FILTER.query, DEFAULT_FILTER.searchIndex)} className="mt-4 border-b border-primary dark:border-white">
-              <Text className="text-primary dark:text-white font-bold">RELOAD</Text>
+            <TouchableOpacity onPress={() => fetchProducts(searchQuery || DEFAULT_FILTER.query, DEFAULT_FILTER.searchIndex)} className="mt-4 border-b border-primary">
+              <Text className="text-primary font-bold">RELOAD</Text>
             </TouchableOpacity>
           </View>
         ) : (

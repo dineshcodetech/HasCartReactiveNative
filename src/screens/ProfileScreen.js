@@ -108,7 +108,7 @@ const ProfileScreen = () => {
               setIsLoggedIn(false);
               setUser(null);
               if (global.setAppAuthState) global.setAppAuthState(false);
-              navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+              // navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
             } catch (error) {
               console.error('[Profile] Logout error:', error);
               Alert.alert('Error', 'Failed to sign out. Please try again.');
@@ -118,6 +118,8 @@ const ProfileScreen = () => {
       ]
     );
   };
+
+
 
   const handleLogin = () => {
     navigation.navigate('Login');
@@ -137,15 +139,35 @@ const ProfileScreen = () => {
   const MenuItem = ({ icon, label, onPress, showArrow = true, isDestructive = false }) => (
     <TouchableOpacity
       onPress={onPress}
-      className="flex-row items-center py-4 border-b border-gray-50 dark:border-gray-800 active:bg-gray-50 dark:active:bg-gray-900"
+      className="flex-row items-center py-4 border-b border-gray-50 active:bg-gray-50"
     >
-      <View className={`w-10 h-10 rounded-full items-center justify-center mr-4 ${isDestructive ? 'bg-red-50 dark:bg-red-900/20' : 'bg-gray-100 dark:bg-gray-800'}`}>
-        <Icon name={icon} size={20} color={isDestructive ? '#ef4444' : isDark ? '#fff' : '#000'} />
+      <View className={`w-10 h-10 rounded-full items-center justify-center mr-4 ${isDestructive ? 'bg-red-50' : 'bg-gray-100'}`}>
+        <Icon name={icon} size={20} color={isDestructive ? '#ef4444' : '#000'} />
       </View>
-      <Text className={`flex-1 text-base font-medium ${isDestructive ? 'text-red-500' : 'text-black dark:text-white'}`}>{label}</Text>
-      {showArrow && <Icon name="chevron-right" size={20} color={isDark ? '#444' : '#ccc'} />}
+      <Text className={`flex-1 text-base font-medium ${isDestructive ? 'text-red-500' : 'text-black'}`}>{label}</Text>
+      {showArrow && <Icon name="chevron-right" size={20} color="#ccc" />}
     </TouchableOpacity>
   );
+
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to delete your account? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            setIsDeleting(true);
+            Alert.alert('Request Submitted', 'Your account deletion request is in progress.');
+          }
+        }
+      ]
+    );
+  };
 
   if (loading) {
     return (
@@ -156,11 +178,11 @@ const ProfileScreen = () => {
   // Not logged in - show login prompt
   if (!isLoggedIn) {
     return (
-      <View className="flex-1 bg-white dark:bg-black justify-center items-center px-8">
-        <View className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full items-center justify-center mb-6">
+      <View className="flex-1 bg-white justify-center items-center px-8">
+        <View className="w-20 h-20 bg-gray-100 rounded-full items-center justify-center mb-6">
           <Icon name="person" size={40} color="#999" />
         </View>
-        <Text className="text-2xl font-bold text-black dark:text-white mb-2">Welcome</Text>
+        <Text className="text-2xl font-bold text-black mb-2">Welcome</Text>
         <Text className="text-gray-400 text-center mb-8">
           Sign in to access your profile, orders, and exclusive deals
         </Text>
@@ -171,7 +193,7 @@ const ProfileScreen = () => {
           <Text className="text-white font-bold text-base tracking-wide uppercase">SIGN IN</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleLogin} className="mt-4">
-          <Text className="text-gray-500 text-sm">New here? <Text className="text-black dark:text-white font-bold">Create Account</Text></Text>
+          <Text className="text-gray-500 text-sm">New here? <Text className="text-black font-bold">Create Account</Text></Text>
         </TouchableOpacity>
       </View>
     );
@@ -179,21 +201,24 @@ const ProfileScreen = () => {
 
   // Logged in - show profile
   return (
-    <View className="flex-1 bg-white dark:bg-black">
+    <View className="flex-1 bg-white">
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
 
         {/* Header */}
-        <View className="px-6 pt-16 pb-8 items-center border-b border-gray-100 dark:border-gray-800">
+        <View className="px-6 pt-16 pb-8 items-center border-b border-gray-100">
           <View className="relative">
-            <View className="w-24 h-24 bg-gray-200 dark:bg-gray-800 rounded-full items-center justify-center overflow-hidden mb-4 border-2 border-white dark:border-gray-900 shadow-lg">
+            <View className="w-24 h-24 bg-gray-200 rounded-full items-center justify-center overflow-hidden mb-4 border-2 border-white shadow-lg">
               <Icon name="person" size={40} color="#999" />
             </View>
-            <View className="absolute bottom-4 right-0 bg-primary w-8 h-8 rounded-full items-center justify-center border-2 border-white dark:border-black">
+            <TouchableOpacity 
+              onPress={() => Alert.alert('Edit Profile', 'This feature is coming soon!')}
+              className="absolute bottom-4 right-0 bg-primary w-8 h-8 rounded-full items-center justify-center border-2 border-white"
+            >
               <Icon name="edit" size={14} color="#fff" />
-            </View>
+            </TouchableOpacity>
           </View>
 
-          <Text className="text-2xl font-bold text-black dark:text-white mb-1">
+          <Text className="text-2xl font-bold text-black mb-1">
             {user?.name || 'User'}
           </Text>
           <Text className="text-gray-400 text-sm mb-4">
@@ -201,8 +226,8 @@ const ProfileScreen = () => {
           </Text>
 
           {user?.role && (
-            <View className="bg-black/5 dark:bg-white/10 px-4 py-1.5 rounded-full">
-              <Text className="text-[10px] font-bold uppercase tracking-widest text-black/60 dark:text-white/70">
+            <View className="bg-black/5 px-4 py-1.5 rounded-full">
+              <Text className="text-[10px] font-bold uppercase tracking-widest text-black/60">
                 {user.role === 'user' ? 'Member' : user.role}
               </Text>
             </View>
@@ -211,27 +236,27 @@ const ProfileScreen = () => {
 
         {/* Wallet Section for Agents */}
         {(user?.role === 'agent' || user?.role === 'admin') && (
-          <View className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
-            <View className="bg-white dark:bg-gray-900 rounded-2xl p-6 mb-4 border border-gray-100 dark:border-gray-800 shadow-sm">
+          <View className="px-6 py-4 border-b border-gray-100">
+            <View className="bg-white rounded-2xl p-6 mb-4 border border-gray-100 shadow-sm">
               <View className="flex-row items-center justify-between mb-4">
                 <View className="flex-row items-center">
-                  <View className="w-10 h-10 bg-green-50 dark:bg-green-900/20 rounded-xl items-center justify-center mr-3">
+                  <View className="w-10 h-10 bg-green-50 rounded-xl items-center justify-center mr-3">
                     <Icon name="account-balance-wallet" size={20} color="#10b981" />
                   </View>
                   <View>
                     <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Available Balance</Text>
-                    <Text className="text-3xl font-black text-black dark:text-white tracking-tight">
+                    <Text className="text-3xl font-black text-black tracking-tight">
                       ₹{user?.balance?.toFixed(2) || agentStats?.agent?.balance?.toFixed(2) || '0.00'}
                     </Text>
                   </View>
                 </View>
               </View>
               <TouchableOpacity
-                className="bg-black dark:bg-white py-3 rounded-xl flex-row items-center justify-center"
+                className="bg-black py-3 rounded-xl flex-row items-center justify-center"
                 onPress={() => navigation.navigate('Withdrawal')}
               >
                 <Icon name="account-balance-wallet" size={18} color="#fff" />
-                <Text className="text-white dark:text-black font-bold ml-2 text-sm uppercase tracking-widest">Withdraw</Text>
+                <Text className="text-white font-bold ml-2 text-sm uppercase tracking-widest">Withdraw</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -239,7 +264,7 @@ const ProfileScreen = () => {
 
         {/* Agent Dashboard Section */}
         {(user?.role === 'agent' || user?.role === 'admin') && (
-          <View className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+          <View className="px-6 py-4 border-b border-gray-100">
             <Text className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-4">Agent Dashboard</Text>
 
             {statsLoading ? (
@@ -362,7 +387,19 @@ const ProfileScreen = () => {
             onPress={handleLogout}
           />
 
-          <View className="mt-8 items-center pb-8">
+          <View className="items-center mt-6">
+            <TouchableOpacity 
+              onPress={handleDeleteAccount}
+              disabled={isDeleting}
+              className="py-2"
+            >
+              <Text className={`${isDeleting ? 'text-gray-400' : 'text-red-400'} font-bold text-xs uppercase tracking-widest`}>
+                {isDeleting ? 'Deletion in Progress...' : 'Delete Account'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View className="mt-4 items-center pb-8">
             <Text className="text-gray-300 text-[10px] font-bold uppercase tracking-[0.2em]">Version 1.0.3</Text>
           </View>
         </View>

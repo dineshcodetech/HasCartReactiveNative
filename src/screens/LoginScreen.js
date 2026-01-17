@@ -166,7 +166,12 @@ const LoginScreen = () => {
           console.log('[Login] User data stored:', data.data.name);
         }
         if (global.setAppAuthState) global.setAppAuthState(true);
-        // navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+        // Navigate back to Profile or go to MainTabs
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        } else {
+          navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+        }
       } else {
         Alert.alert('Error', data.message || 'Authentication failed.');
       }

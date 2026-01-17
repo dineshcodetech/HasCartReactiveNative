@@ -16,24 +16,24 @@ const AboutUsScreen = () => {
     const LinkItem = ({ icon, label, url }) => (
         <TouchableOpacity
             onPress={() => openLink(url)}
-            className="flex-row items-center py-4 border-b border-gray-100 dark:border-gray-800"
+            className="flex-row items-center py-4 border-b border-gray-100"
         >
-            <View className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800 items-center justify-center mr-3">
-                <Icon name={icon} size={18} color={isDark ? '#fff' : '#000'} />
+            <View className="w-8 h-8 rounded-full bg-gray-50 items-center justify-center mr-3">
+                <Icon name={icon} size={18} color="#000" />
             </View>
-            <Text className="flex-1 text-base text-gray-700 dark:text-gray-300 font-medium">{label}</Text>
-            <Icon name="chevron-right" size={20} color={isDark ? '#444' : '#ccc'} />
+            <Text className="flex-1 text-base text-gray-700 font-medium">{label}</Text>
+            <Icon name="chevron-right" size={20} color="#ccc" />
         </TouchableOpacity>
     );
 
     return (
-        <View className="flex-1 bg-white dark:bg-black">
+        <View className="flex-1 bg-white">
             {/* Header */}
-            <View className="flex-row items-center px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+            <View className="flex-row items-center px-4 py-3 border-b border-gray-100">
                 <TouchableOpacity onPress={() => navigation.goBack()} className="p-2 mr-2">
-                    <Icon name="arrow-back" size={24} color={isDark ? '#fff' : '#000'} />
+                    <Icon name="arrow-back" size={24} color="#000" />
                 </TouchableOpacity>
-                <Text className="text-lg font-bold text-black dark:text-white">About Us</Text>
+                <Text className="text-lg font-bold text-black">About Us</Text>
             </View>
 
             <ScrollView contentContainerStyle={{ padding: 24 }}>
@@ -45,11 +45,11 @@ const AboutUsScreen = () => {
                             resizeMode="contain"
                         />
                     </View>
-                    <Text className="text-2xl font-bold text-primary dark:text-white mb-2">HasCart Premium</Text>
-                    <Text className="text-gray-500 dark:text-gray-400 font-medium">Version 1.0.0</Text>
+                    <Text className="text-2xl font-bold text-primary mb-2">HasCart Premium</Text>
+                    <Text className="text-gray-500 font-medium">Version 1.0.0</Text>
                 </View>
 
-                <Text className="text-gray-600 dark:text-gray-300 text-base leading-6 text-center mb-10">
+                <Text className="text-gray-600 text-base leading-6 text-center mb-10">
                     HasCart is reimagining the way you shop. We bring you the best products at unbeatable prices, delivered with speed and care. Experience the future of quick commerce today.
                 </Text>
 
